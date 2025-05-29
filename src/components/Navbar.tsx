@@ -1,0 +1,18 @@
+function Navbar() {
+  return (
+    <>
+      <nav className="container fixed top-4 w-[calc(100%-32px)] translate-x-[-50%] left-1/2 bg-white/3 border border-white/20 rounded-lg h-18 flex justify-between py-5 px-10">
+        <a className="flex items-center">
+          <img src="../public/logo/logo_AK.png" alt="" className="h-full" />
+          <p className="ms-4 text-xl">Akshiro</p>
+        </a>
+
+        <a href="">
+          <img src="../public/logo/github.png" alt="" className="h-full" />
+        </a>
+      </nav>
+    </>
+  );
+}
+
+export default Navbar;
