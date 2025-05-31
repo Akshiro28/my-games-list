@@ -41,7 +41,3 @@ app.get('/api/genres', (req, res) => {
     res.json(results);
   });
 });
-
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});

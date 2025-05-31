@@ -21,8 +21,14 @@
 :root {
   font-family: Lexend, system-ui, Avenir, Helvetica, Arial, sans-serif;
 
-  --background: #171717;
+  --background: #1C1F2A;
   --white: #FFFFFF;
+  --thin: #252938;
+  --thin-brighter: #343A4F;
+  --thin-brighter-brighter: #434B66;
+  --text-thin: #646A7A;
+  --green: #B9D6CA;
+  --green15: #B9D6CA26;
 }
 
 body {

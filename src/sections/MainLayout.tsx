@@ -22,7 +22,7 @@ function MainLayout() {
   }, [selectedGenre]);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="container mx-auto mt-26 flex h-[calc(100vh-208px)] py-5 overflow-y-scroll">
       <GenreSidebar
         genres={genres}
         selectedGenre={selectedGenre}

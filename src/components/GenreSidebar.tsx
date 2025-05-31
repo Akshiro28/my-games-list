@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 type Genre = {
   id: number;
   name: string;
@@ -9,32 +11,44 @@ type GenreSidebarProps = {
   setSelectedGenre: (genreId: number | null) => void;
 };
 
+function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarProps) {
+  const [search, setSearch] = useState('');
 
-function GenreSidebar({
-  genres,
-  selectedGenre,
-  setSelectedGenre,
-}: GenreSidebarProps) {
+  // filter genres by search input (case-insensitive)
+  const filteredGenres = genres.filter(genre =>
+    genre.name.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <aside className="w-64 bg-gray-100 border-r p-4">
-      <h2 className="text-xl font-semibold mb-4">Genres</h2>
-      <ul className="space-y-2">
+    <aside className="min-w-64">
+      <h2 className="text-4xl font-semibold mb-5">Genres</h2>
+
+      <input
+        type="text"
+        placeholder="Search genres..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full px-3 py-2 mb-6 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
+      />
+
+      <ul className="space-y-1">
         <li>
           <button
             onClick={() => setSelectedGenre(null)}
-            className={`w-full text-left px-2 py-1 rounded hover:bg-gray-200 ${
-              !selectedGenre ? 'bg-gray-300' : ''
+            className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] ${
+              !selectedGenre ? 'bg-[var(--thin)]' : ''
             }`}
           >
             All
           </button>
         </li>
-        {genres.map((genre) => (
+
+        {filteredGenres.map((genre) => (
           <li key={genre.id}>
             <button
               onClick={() => setSelectedGenre(genre.id)}
-              className={`w-full text-left px-2 py-1 rounded hover:bg-gray-200 ${
-                selectedGenre === genre.id ? 'bg-gray-300' : ''
+              className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] ${
+                selectedGenre === genre.id ? 'bg-[var(--thin)]' : ''
               }`}
             >
               {genre.name}
