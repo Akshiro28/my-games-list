@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import editIcon from '/logo/edit.png';
 
 type Card = {
   id: number;
@@ -24,6 +25,7 @@ function CardGrid({ cards }: CardGridProps) {
   const [sortOption, setSortOption] = useState('titleAsc');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // close dropdown if click outside
   useEffect(() => {
@@ -72,7 +74,7 @@ function CardGrid({ cards }: CardGridProps) {
           <div className="relative inline-block w-76" ref={dropdownRef}>
             <button
               type="button"
-              className="w-full px-3 py-2 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] flex justify-between items-center"
+              className="w-full ps-3 pe-2 py-2 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] flex justify-between items-center hover:border-[var(--thin-brighter)] cursor-pointer"
               onClick={() => setDropdownOpen(!dropdownOpen)}
               aria-haspopup="listbox"
               aria-expanded={dropdownOpen}
@@ -100,7 +102,7 @@ function CardGrid({ cards }: CardGridProps) {
                     key={option.value}
                     role="option"
                     aria-selected={sortOption === option.value}
-                    className={`cursor-pointer select-none px-4 py-2 hover:bg-[var(--thin-brighter)] ${
+                    className={`cursor-pointer select-none px-3 py-2 hover:bg-[var(--thin-brighter)] ${
                       sortOption === option.value ? 'bg-[var(--thin)] font-semibold' : ''
                     }`}
                     onClick={() => {
@@ -128,8 +130,19 @@ function CardGrid({ cards }: CardGridProps) {
             placeholder="Search games..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full sm:max-w-xs px-3 py-2 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
+            className="w-full sm:max-w-xs px-3 py-2 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
           />
+
+          <button
+            onClick={() => setIsEditing(prev => !prev)}
+            className={`px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer
+              ${isEditing 
+                ? 'border-[var(--thin-brighter)] text-[var(--text-thin)] bg-[var(--thin)] hover:border-[var(--thin-brighter-brighter)] hover:text-[var(--text-thin-brighter)]' 
+                : 'border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]'
+              }`}
+          >
+            {isEditing ? 'Edit Mode On' : 'Edit Mode Off'}
+          </button>
         </div>
       </div>
 
@@ -151,7 +164,13 @@ function CardGrid({ cards }: CardGridProps) {
           }
 
           return (
-            <div key={card.id} className="bg-[var(--thin)] rounded-lg overflow-hidden card">
+            <div key={card.id} className="bg-[var(--thin)] rounded-lg overflow-hidden card relative">
+              {isEditing && (
+                <div className="absolute top-0 left-0 z-1">
+                  <img src={editIcon} alt="Edit" className="w-9 h-9 opacity-100 cursor-pointer translate-[50%] bg-[var(--background)] p-2 rounded" />
+                </div>
+              )}
+
               <img
                 src={card.image_path}
                 alt={card.title}

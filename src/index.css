@@ -26,7 +26,9 @@
   --thin: #252938;
   --thin-brighter: #343A4F;
   --thin-brighter-brighter: #434B66;
+  --thin-brighter-brighter-brighter: #545E7F;
   --text-thin: #646A7A;
+  --text-thin-brighter: #7C8293;
   --green: #B9D6CA;
   --green15: #B9D6CA26;
 }
@@ -34,4 +36,5 @@
 body {
   background: var(--background);
   color: var(--white);
+  outline: none;
 }
