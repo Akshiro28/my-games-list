@@ -35,7 +35,7 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarP
         <li>
           <button
             onClick={() => setSelectedGenre(null)}
-            className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] ${
+            className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] cursor-pointer ${
               !selectedGenre ? 'bg-[var(--thin)]' : ''
             }`}
           >
@@ -47,7 +47,7 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarP
           <li key={genre.id}>
             <button
               onClick={() => setSelectedGenre(genre.id)}
-              className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] ${
+              className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] cursor-pointer ${
                 selectedGenre === genre.id ? 'bg-[var(--thin)]' : ''
               }`}
             >

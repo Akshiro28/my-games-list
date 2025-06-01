@@ -11,6 +11,9 @@ type Card = {
 
 type CardGridProps = {
   cards: Card[];
+  isEditing: boolean;
+  onEditClick: (card: Card) => void;
+  setIsEditing: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const SORT_OPTIONS = [
@@ -20,20 +23,15 @@ const SORT_OPTIONS = [
   { value: 'scoreAsc', label: 'Score: Low → High' },
 ];
 
-function CardGrid({ cards }: CardGridProps) {
+function CardGrid({ cards, isEditing, onEditClick, setIsEditing }: CardGridProps) {
   const [search, setSearch] = useState('');
   const [sortOption, setSortOption] = useState('titleAsc');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [isEditing, setIsEditing] = useState(false);
 
-  // close dropdown if click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current && 
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
       }
     }
@@ -41,12 +39,10 @@ function CardGrid({ cards }: CardGridProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // filter cards by search input
   let filteredCards = cards.filter(card =>
     card.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  // sort filtered cards
   switch (sortOption) {
     case 'scoreDesc':
       filteredCards.sort((a, b) => b.score - a.score);
@@ -62,11 +58,10 @@ function CardGrid({ cards }: CardGridProps) {
       break;
   }
 
-  // get label for current sort option
   const currentSortLabel = SORT_OPTIONS.find(o => o.value === sortOption)?.label || '';
 
   return (
-    <main className="flex-1 px-6">
+    <main className="flex-1 px-6 relative">
       <h1 className="text-4xl font-semibold mb-5">Games</h1>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -124,7 +119,6 @@ function CardGrid({ cards }: CardGridProps) {
             )}
           </div>
 
-          {/* Search Input */}
           <input
             type="text"
             placeholder="Search games..."
@@ -146,9 +140,9 @@ function CardGrid({ cards }: CardGridProps) {
         </div>
       </div>
 
-      {/* Card Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredCards.map((card) => {
+        {filteredCards.map(card => {
+          // Determine text and background color based on score
           let textColor = '';
           let bgColor = '';
 
@@ -164,23 +158,29 @@ function CardGrid({ cards }: CardGridProps) {
           }
 
           return (
-            <div key={card.id} className="bg-[var(--thin)] rounded-lg overflow-hidden card relative">
+            <div key={card.id} className="relative card rounded-lg overflow-hidden bg-[var(--thin)] hover:scale-103 hover:bg-[#2C3142]">
+              {/* Edit icon shows only if editing mode is on */}
               {isEditing && (
-                <div className="absolute top-0 left-0 z-1">
-                  <img src={editIcon} alt="Edit" className="w-9 h-9 opacity-100 cursor-pointer translate-[50%] bg-[var(--background)] p-2 rounded" />
-                </div>
+                <button
+                  onClick={() => onEditClick(card)}
+                  className="absolute top-0 left-0 z-1 p-2 rounded bg-[var(--thin)] hover:bg-[var(--thin-brighter)] transition cursor-pointer translate-[50%]"
+                  aria-label={`Edit ${card.title}`}
+                >
+                  <img src={editIcon} alt="Edit" className="w-6 h-6" />
+                </button>
               )}
 
               <img
-                src={card.image_path}
-                alt={card.title}
                 className="w-full h-36 object-cover"
+                src={card.image_path}
+                alt={`Cover of ${card.title}`}
+                loading="lazy"
               />
 
               <div className="px-5 pt-4 pb-5">
                 <div className="flex w-full items-center justify-between mb-2">
                   <h3 className="text-lg font-semibold">{card.title}</h3>
-                  <span className={`px-2 rounded text-sm font-medium ${textColor} ${bgColor}`}>
+                  <span className={`px-2 rounded text-sm font-medium w-fit h-fit ${textColor} ${bgColor}`}>
                     {card.score}
                   </span>
                 </div>
