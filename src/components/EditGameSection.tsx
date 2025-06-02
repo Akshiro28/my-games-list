@@ -74,11 +74,6 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     );
   }
 
-  function handleGenreChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const selected = Array.from(e.target.selectedOptions, option => Number(option.value));
-    setSelectedGenres(selected);
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formData) return;

@@ -32,6 +32,10 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [mode, setMode] = useState<'edit' | 'delete' | null>(null);
 
+  const [topGradientOpacity, setTopGradientOpacity] = useState(0);
+  const [bottomGradientOpacity, setBottomGradientOpacity] = useState(1);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -41,6 +45,36 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    function handleScroll() {
+      if (!scrollContainerRef.current) return;
+      const el = scrollContainerRef.current;
+      const scrollTop = el.scrollTop;
+      const scrollHeight = el.scrollHeight;
+      const clientHeight = el.clientHeight;
+
+      if (scrollTop === 0) {
+        setTopGradientOpacity(1);
+        setBottomGradientOpacity(0);
+      } else if (scrollTop + clientHeight >= scrollHeight - 1) {
+        setTopGradientOpacity(0);
+        setBottomGradientOpacity(1);
+      } else {
+        setTopGradientOpacity(1);
+        setBottomGradientOpacity(1);
+      }
+    }
+
+    const el = scrollContainerRef.current;
+    if (el) {
+      el.addEventListener('scroll', handleScroll);
+      handleScroll();
+    }
+    return () => {
+      if (el) el.removeEventListener('scroll', handleScroll);
+    };
+  }, [cards]);
 
   let filteredCards = cards.filter(card =>
     card.title.toLowerCase().includes(search.toLowerCase())
@@ -65,114 +99,117 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
 
   return (
     <main className="flex-1 ps-4.5 relative flex flex-col h-full">
-      {/* Sticky Heading + Controls */}
       <div className="sticky top-0 bg-[var(--bg)] z-8">
         <h1 className="text-4xl font-semibold mb-5 ps-1">Games</h1>
-
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4.5 ps-0.5">
-          <div className="flex items-center gap-4 ps-1">
-            <div className="relative inline-block w-76" ref={dropdownRef}>
-              <button
-                type="button"
-                className="w-full ps-3 pe-2 py-2 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] flex justify-between items-center hover:border-[var(--thin-brighter)] cursor-pointer"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                aria-haspopup="listbox"
-                aria-expanded={dropdownOpen}
-              >
-                <span>{currentSortLabel}</span>
-                <svg
-                  className={`w-4 h-4 ml-2 duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4.5 ps-0.5 w-full">
+          <div className="flex flex-wrap gap-2 justify-center sm:justify-start w-full">
+            <div className="flex gap-2 w-full sm:w-auto sm:flex-1">
+              <div className="relative w-full max-w-56 shrink-0" ref={dropdownRef}>
+                <button
+                  type="button"
+                  className="w-full max-w-56 ps-3 pe-2 py-2 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] flex justify-between items-center hover:border-[var(--thin-brighter)] cursor-pointer"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  aria-haspopup="listbox"
+                  aria-expanded={dropdownOpen}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+                  <span>{currentSortLabel}</span>
+                  <svg
+                    className={`w-4 h-4 ml-2 duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-              {dropdownOpen && (
-                <ul
-                  role="listbox"
-                  className="absolute mt-2 max-h-60 w-full overflow-auto rounded-md bg-[var(--thin)] border-2 border-[var(--thin-brighter)] large-shadow focus:outline-none"
-                  tabIndex={-1}
-                >
-                  {SORT_OPTIONS.map(option => (
-                    <li
-                      key={option.value}
-                      role="option"
-                      aria-selected={sortOption === option.value}
-                      className={`cursor-pointer select-none px-3 py-2 hover:bg-[var(--thin-brighter)] ${
-                        sortOption === option.value ? 'bg-[var(--thin)] font-semibold' : ''
-                      }`}
-                      onClick={() => {
-                        setSortOption(option.value);
-                        setDropdownOpen(false);
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' || e.key === ' ') {
+                {dropdownOpen && (
+                  <ul
+                    role="listbox"
+                    className="w-full max-w-56 absolute mt-2 max-h-60 overflow-auto rounded-md bg-[var(--thin)] border-2 border-[var(--thin-brighter)] large-shadow focus:outline-none"
+                    tabIndex={-1}
+                  >
+                    {SORT_OPTIONS.map(option => (
+                      <li
+                        key={option.value}
+                        role="option"
+                        aria-selected={sortOption === option.value}
+                        className={`cursor-pointer select-none px-3 py-2 hover:bg-[var(--thin-brighter)] ${
+                          sortOption === option.value ? 'bg-[var(--thin)] font-semibold' : ''
+                        }`}
+                        onClick={() => {
                           setSortOption(option.value);
                           setDropdownOpen(false);
-                        }
-                      }}
-                      tabIndex={0}
-                    >
-                      {option.label}
-                    </li>
-                  ))}
-                </ul>
-              )}
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            setSortOption(option.value);
+                            setDropdownOpen(false);
+                          }
+                        }}
+                        tabIndex={0}
+                      >
+                        {option.label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="flex-grow w-100">
+                <input
+                  type="text"
+                  placeholder="Search games..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full px-3 py-2 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
+                />
+              </div>
             </div>
 
-            <input
-              type="text"
-              placeholder="Search games..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full sm:max-w-xs px-3 py-2 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
-            />
+            <div className="flex gap-2 w-full sm:w-auto sm:flex-none sm:flex-row flex-col">
+              <button
+                onClick={() => setMode(prev => (prev === 'edit' ? null : 'edit'))}
+                className={`px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer
+                  ${mode === 'edit'
+                    ? 'border-[var(--thin-brighter)] text-[var(--text-thin)] bg-[var(--thin)] hover:border-[var(--thin-brighter-brighter)] hover:text-[var(--text-thin-brighter)]'
+                    : 'border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]'
+                  }`}
+              >
+                {mode === 'edit' ? 'Edit Mode On' : 'Edit Mode Off'}
+              </button>
 
-            <button
-              onClick={() => setMode(prev => (prev === 'edit' ? null : 'edit'))}
-              className={`px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer
-                ${mode === 'edit'
-                  ? 'border-[var(--thin-brighter)] text-[var(--text-thin)] bg-[var(--thin)] hover:border-[var(--thin-brighter-brighter)] hover:text-[var(--text-thin-brighter)]'
-                  : 'border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]'
-                }`}
-            >
-              {mode === 'edit' ? 'Edit Mode On' : 'Edit Mode Off'}
-            </button>
+              <button
+                onClick={() => onEditClick({
+                  id: -1,
+                  title: '',
+                  description: '',
+                  image_path: '',
+                  score: 0,
+                  genres: [],
+                })}
+                className="px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]"
+              >
+                + Add New Game
+              </button>
 
-            <button
-              onClick={() => onEditClick({
-                id: -1,
-                title: '',
-                description: '',
-                image_path: '',
-                score: 0,
-                genres: [],
-              })}
-              className="px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]"
-            >
-              + Add New Game
-            </button>
-
-            <button
-              onClick={() => setMode(prev => (prev === 'delete' ? null : 'delete'))}
-              className={`px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer
-                ${mode === 'delete'
-                  ? 'border-[var(--thin-brighter)] text-[var(--text-thin)] bg-[var(--thin)] hover:border-[var(--thin-brighter-brighter)] hover:text-[var(--text-thin-brighter)]'
-                  : 'border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]'
-                }`}
-            >
-              {mode === 'delete' ? 'Delete Mode On' : 'Delete Mode Off'}
-            </button>
+              <button
+                onClick={() => setMode(prev => (prev === 'delete' ? null : 'delete'))}
+                className={`px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer
+                  ${mode === 'delete'
+                    ? 'border-[var(--thin-brighter)] text-[var(--text-thin)] bg-[var(--thin)] hover:border-[var(--thin-brighter-brighter)] hover:text-[var(--text-thin-brighter)]'
+                    : 'border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]'
+                  }`}
+              >
+                {mode === 'delete' ? 'Delete Mode On' : 'Delete Mode Off'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Scrollable Card Grid */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 p-1.5">
           {filteredCards.map(card => {
             let textColor = '';
@@ -200,7 +237,6 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                     <img src={editIcon} alt="Edit" className="w-6 h-6" />
                   </button>
                 )}
-
                 {mode === 'delete' && (
                   <button
                     onClick={() => setCardToDelete(card)}
@@ -210,14 +246,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                     <img src={deleteIcon} alt="Delete" className="w-6 h-6" />
                   </button>
                 )}
-
-                <img
-                  className="w-full h-36 object-cover"
-                  src={card.image_path}
-                  alt={`Cover of ${card.title}`}
-                  loading="lazy"
-                />
-
+                <img className="w-full h-36 object-cover" src={card.image_path} alt={`Cover of ${card.title}`} loading="lazy" />
                 <div className="px-5 pt-4 pb-5">
                   <div className="flex w-full items-center justify-between mb-2">
                     <h3 className="text-lg font-semibold">{card.title}</h3>
@@ -233,7 +262,6 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {cardToDelete && (
         <div className="fixed inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.32)] backdrop-blur-xs z-9">
           <div className="bg-[var(--background)] px-8 py-6 rounded-lg shadow-md text-center large-shadow-darker border-2 border-[var(--thin-brighter)]">
@@ -260,6 +288,22 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
           </div>
         </div>
       )}
+
+      {/* Gradient overlays */}
+      <div
+        className="pointer-events-none absolute bottom-0 left-0 w-full h-[64px] card-top-gradient transition-opacity duration-500"
+        style={{
+          background: 'linear-gradient(to top, rgba(28,31,42,1), transparent)',
+          opacity: topGradientOpacity,
+        }}
+      />
+      <div
+        className="pointer-events-none absolute top-30.5 left-0 w-full h-[64px] card-bottom-gradient transition-opacity duration-500"
+        style={{
+          background: 'linear-gradient(to bottom, rgba(28,31,42,1), transparent)',
+          opacity: bottomGradientOpacity,
+        }}
+      />
     </main>
   );
 }
