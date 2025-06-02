@@ -3,6 +3,8 @@ import axios from 'axios';
 import GenreSidebar from '../components/GenreSidebar';
 import CardGrid from '../components/CardGrid';
 import EditGameSection from '../components/EditGameSection';
+import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 type Card = {
   id: number;
@@ -10,74 +12,133 @@ type Card = {
   description: string;
   image_path: string;
   score: number;
+  genres?: number[];
 };
 
 function MainLayout() {
   const [genres, setGenres] = useState([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
-
-  function toggleIsEditing() {
-    setIsEditing(prev => !prev);
-  }
+  const [isNew, setIsNew] = useState(false);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/genres').then(res => {
-      setGenres(res.data);
-    }).catch(err => {
-      console.error('Failed to fetch genres:', err);
-    });
+    axios
+      .get('http://localhost:5000/api/genres')
+      .then(res => setGenres(res.data))
+      .catch(err => console.error('Failed to fetch genres:', err));
   }, []);
 
+  const fetchCards = () => {
+    const url = selectedGenre
+      ? `http://localhost:5000/api/cards?genre=${selectedGenre}`
+      : `http://localhost:5000/api/cards`;
+
+    axios
+      .get(url)
+      .then(res => setCards(res.data))
+      .catch(err => console.error('Failed to fetch cards:', err));
+  };
+
   useEffect(() => {
-    const url = selectedGenre ? `http://localhost:5000/api/cards?genre=${selectedGenre}` : 'http://localhost:5000/api/cards';
-    axios.get(url).then(res => setCards(res.data));
+    const url = selectedGenre
+      ? `http://localhost:5000/api/cards?genre=${selectedGenre}`
+      : 'http://localhost:5000/api/cards';
+
+    axios.get(url)
+      .then(res => {
+        setCards(res.data);
+      })
+      .catch(err => console.error('Failed to fetch cards:', err));
   }, [selectedGenre]);
 
   function handleEditClick(card: Card) {
-    setEditingCard(card);
+    if (card.id === -1) {
+      // Adding new game: skip fetch, just set the card directly
+      setEditingCard(card);
+      setIsNew(true);
+    } else {
+      // Editing existing game: fetch details from backend
+      fetch(`http://localhost:5000/api/cards/${card.id}`)
+        .then(res => res.json())
+        .then(data => {
+          setEditingCard(data);
+          setIsNew(false);
+        })
+        .catch(err => console.error('Failed to fetch card details:', err));
+    }
   }
 
   function closeEditSection() {
     setEditingCard(null);
+    setIsNew(false);
   }
 
-  function handleSave(updatedCard: Card) {
-    setCards(prevCards => prevCards.map(c => c.id === updatedCard.id ? updatedCard : c));
+  function handleSave() {
+    fetchCards(); // Refresh the cards after save to reflect DB updates
+    toast.success(isNew ? 'Game added successfully!' : 'Changes saved!');
     closeEditSection();
   }
 
-  return (
-    <div className={`container mx-auto mt-26 flex h-[calc(100vh-208px)] py-5 overflow-hidden relative ${editingCard ? 'editing' : ''}`}>
-      <div className="card-grid overflow-hidden">
-        <GenreSidebar
-          genres={genres}
-          selectedGenre={selectedGenre}
-          setSelectedGenre={setSelectedGenre}
-        />
-      </div>
+  function handleDelete(id: number) {
+    fetch(`http://localhost:5000/api/cards/${id}`, {
+      method: 'DELETE',
+    })
+      .then(res => {
+        if (res.ok) {
+          setCards(prevCards => prevCards.filter(card => card.id !== id));
+          toast.success('Game deleted!');
+        } else {
+          toast.error('Failed to delete game.');
+        }
+      })
+      .catch(err => {
+        console.error('Delete failed', err);
+        toast.error('An error occurred while deleting.');
+      });
+  }
 
-      <div className="relative flex-1 overflow-hidden">
-        <div className="card-grid absolute top-0 left-0 w-full h-full">
-          <CardGrid
-            cards={cards}
-            isEditing={isEditing}
-            onEditClick={handleEditClick}
-            setIsEditing={toggleIsEditing}
+  return (
+    <>
+      <div
+        className={`container mx-auto mt-31 flex h-[calc(100vh-228px)] overflow-hidden relative ${
+          editingCard ? 'editing' : ''
+        }`}
+      >
+        <div className="card-grid">
+          <GenreSidebar
+            genres={genres}
+            selectedGenre={selectedGenre}
+            setSelectedGenre={setSelectedGenre}
           />
         </div>
-      </div>
 
-      <div className="edit-section container absolute top-full left-0 w-full h-full bg-[var(--background)]">
+        <div className="relative flex-1 overflow-hidden">
+          <div className="card-grid absolute top-0 left-0 w-full h-full">
+            <CardGrid
+              cards={cards}
+              onEditClick={handleEditClick}
+              onDelete={handleDelete}
+            />
+          </div>
+        </div>
+
+        <div className="edit-section container absolute top-full left-[50%] translate-x-[-50%] w-fit h-full bg-[var(--background)]">
           <EditGameSection
             card={editingCard}
             onClose={closeEditSection}
             onSave={handleSave}
+            isNew={isNew}
           />
         </div>
-    </div>
+      </div>
+
+      <Toaster
+        position="top-center"
+        toastOptions={{ duration: 4000 }}
+        containerStyle={{ top: '29px' }} // Custom offset from top
+      />
+    </>
   );
 }
 

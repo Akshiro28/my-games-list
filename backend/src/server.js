@@ -20,40 +20,69 @@ const db = mysql.createConnection({
 
 db.connect(err => {
   if (err) throw err;
-  console.log('✅ Connected to MySQL database');
+  console.log('Connected to MySQL database');
 });
 
-// Routes
-
-// Get all cards
+// get all cards, optionally filtered by genre
 app.get('/api/cards', (req, res) => {
-  db.query('SELECT * FROM cards', (err, results) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: 'Database query failed' });
-    }
-    res.json(results);
-  });
+  const genreId = req.query.genre;
+
+  if (genreId) {
+    // Filter cards by genre
+    const query = `
+      SELECT c.*
+      FROM cards c
+      JOIN card_genres cg ON c.id = cg.card_id
+      WHERE cg.genre_id = ?
+    `;
+
+    db.query(query, [genreId], (err, results) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Database query failed' });
+      }
+      res.json(results);
+    });
+  } else {
+    // Return all cards
+    db.query('SELECT * FROM cards', (err, results) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Database query failed' });
+      }
+      res.json(results);
+    });
+  }
 });
 
-// Get card by ID
+// Get card by ID with associated genres
 app.get('/api/cards/:id', (req, res) => {
   const { id } = req.params;
-  const sql = 'SELECT * FROM cards WHERE id = ?';
 
-  db.query(sql, [id], (err, results) => {
-    if (err) {
-      console.error('Error fetching card:', err);
-      return res.status(500).json({ error: 'Database error' });
+  const cardQuery = 'SELECT * FROM cards WHERE id = ?';
+  const genreQuery = `
+    SELECT genre_id FROM card_genres WHERE card_id = ?
+  `;
+
+  db.query(cardQuery, [id], (err, cardResults) => {
+    if (err || cardResults.length === 0) {
+      return res.status(500).json({ error: 'Card not found or query failed' });
     }
-    if (results.length === 0) {
-      return res.status(404).json({ error: 'Card not found' });
-    }
-    res.json(results[0]);
+
+    const card = cardResults[0];
+
+    db.query(genreQuery, [id], (err, genreResults) => {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to get genres' });
+      }
+
+      card.genres = genreResults.map(g => g.genre_id); // Add genres array to the card
+      res.json(card);
+    });
   });
 });
 
-// Get all genres
+// get all genres
 app.get('/api/genres', (req, res) => {
   db.query('SELECT * FROM genres', (err, results) => {
     if (err) {
@@ -64,7 +93,7 @@ app.get('/api/genres', (req, res) => {
   });
 });
 
-// Update card with genres
+// update card with genres
 app.put('/api/cards/:id', (req, res) => {
   const gameId = req.params.id;
   const { title, image_path, score, description, genres } = req.body;
@@ -79,7 +108,7 @@ app.put('/api/cards/:id', (req, res) => {
       return res.status(500).json({ error: 'Transaction error' });
     }
 
-    // 1. Update card info
+    // 1. update card info
     const updateCardQuery = `
       UPDATE cards
       SET title = ?, image_path = ?, score = ?, description = ?
@@ -94,7 +123,7 @@ app.put('/api/cards/:id', (req, res) => {
         });
       }
 
-      // 2. Delete old genre links
+      // 2. delete old genre links
       db.query('DELETE FROM card_genres WHERE card_id = ?', [gameId], (err) => {
         if (err) {
           return db.rollback(() => {
@@ -103,7 +132,7 @@ app.put('/api/cards/:id', (req, res) => {
           });
         }
 
-        // 3. Insert new genre relationships
+        // 3. insert new genre relationships
         const insertGenreQuery = `
           INSERT INTO card_genres (card_id, genre_id) VALUES ?
         `;
@@ -145,7 +174,129 @@ app.put('/api/cards/:id', (req, res) => {
   });
 });
 
-// Start server
+// create new card with genres
+app.post('/api/cards', (req, res) => {
+  const { title, image_path, score, description, genres } = req.body;
+
+  if (!title || !image_path || typeof score !== 'number' || !description || !Array.isArray(genres)) {
+    return res.status(400).json({ error: 'Invalid data' });
+  }
+
+  db.beginTransaction(err => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Transaction error' });
+    }
+
+    // 1. insert new card
+    const insertCardQuery = `
+      INSERT INTO cards (title, image_path, score, description)
+      VALUES (?, ?, ?, ?)
+    `;
+
+    db.query(insertCardQuery, [title, image_path, score, description], (err, result) => {
+      if (err) {
+        return db.rollback(() => {
+          console.error(err);
+          res.status(500).json({ error: 'Failed to insert card' });
+        });
+      }
+
+      const newCardId = result.insertId;
+
+      // 2. insert genre relations
+      if (genres.length === 0) {
+        // no genres, just commit
+        return db.commit(err => {
+          if (err) {
+            return db.rollback(() => {
+              console.error(err);
+              res.status(500).json({ error: 'Commit failed' });
+            });
+          }
+          // Return new card info with empty genres array
+          res.status(201).json({ id: newCardId, title, image_path, score, description, genres: [] });
+        });
+      }
+
+      const insertGenreQuery = `
+        INSERT INTO card_genres (card_id, genre_id) VALUES ?
+      `;
+      const values = genres.map(genreId => [newCardId, genreId]);
+
+      db.query(insertGenreQuery, [values], (err) => {
+        if (err) {
+          return db.rollback(() => {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to insert genres' });
+          });
+        }
+
+        db.commit(err => {
+          if (err) {
+            return db.rollback(() => {
+              console.error(err);
+              res.status(500).json({ error: 'Commit failed' });
+            });
+          }
+
+          res.status(201).json({ id: newCardId, title, image_path, score, description, genres });
+        });
+      });
+    });
+  });
+});
+
+// delete card and its genre associations
+app.delete('/api/cards/:id', (req, res) => {
+  const { id } = req.params;
+
+  db.beginTransaction(err => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Transaction error' });
+    }
+
+    // 1. Delete genre associations
+    db.query('DELETE FROM card_genres WHERE card_id = ?', [id], (err) => {
+      if (err) {
+        return db.rollback(() => {
+          console.error(err);
+          res.status(500).json({ error: 'Failed to delete genre relations' });
+        });
+      }
+
+      // 2. Delete the card itself
+      db.query('DELETE FROM cards WHERE id = ?', [id], (err, result) => {
+        if (err) {
+          return db.rollback(() => {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to delete card' });
+          });
+        }
+
+        if (result.affectedRows === 0) {
+          return db.rollback(() => {
+            res.status(404).json({ error: 'Card not found' });
+          });
+        }
+
+        db.commit(err => {
+          if (err) {
+            return db.rollback(() => {
+              console.error(err);
+              res.status(500).json({ error: 'Commit failed' });
+            });
+          }
+
+          res.status(204).send(); // No content
+        });
+      });
+    });
+  });
+});
+
+// start server
 app.listen(port, () => {
-  console.log(`🚀 Server running on http://localhost:${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 });

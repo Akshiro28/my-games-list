@@ -6,6 +6,10 @@
   box-shadow: 0 30px 60px rgba(28, 31, 42, 1);
 }
 
+.large-shadow-darker {
+  box-shadow: 0 0 90px 8px rgba(19, 21, 28, 1);
+}
+
 .card-grid, .edit-section {
   transition: all 0.8s ease;
 }

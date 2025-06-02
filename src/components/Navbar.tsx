@@ -8,7 +8,7 @@ function Navbar() {
         </a>
 
         <a href="https://github.com/Akshiro28/react-tailwind-app" target="_blank" rel="noopener noreferrer">
-          <img src="../public/logo/github.png" alt="" className="h-full" />
+          <img src="../public/logo/github.png" alt="" className="h-full ms-auto" />
         </a>
       </nav>
     </>

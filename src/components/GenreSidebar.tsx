@@ -20,18 +20,20 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarP
   );
 
   return (
-    <aside className="min-w-64">
-      <h2 className="text-4xl font-semibold mb-5">Genres</h2>
+   <aside className="min-w-64 flex flex-col h-full">
+      <div className="sticky top-0">
+        <h2 className="text-4xl font-semibold mb-5">Genres</h2>
 
-      <input
-        type="text"
-        placeholder="Search genres..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full px-3 py-2 mb-6 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)]"
-      />
+        <input
+          type="text"
+          placeholder="Search genres..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full px-3 py-2 mb-6 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)]"
+        />
+      </div>
 
-      <ul className="space-y-1">
+      <ul className="space-y-1 overflow-y-auto">
         <li>
           <button
             onClick={() => setSelectedGenre(null)}
