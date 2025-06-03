@@ -3,19 +3,19 @@ import editIcon from '/logo/edit.png';
 import deleteIcon from '/logo/delete.png';
 import Card3D from './Card3D';
 
-type Card = {
-  id: number;
-  title: string;
+export type Card = {
+  _id: string;
+  name: string;
   description: string;
   image_path: string;
   score: number;
-  genres?: number[];
+  genres?: string[];
 };
 
 type CardGridProps = {
   cards: Card[];
   onEditClick: (card: Card) => void;
-  onDelete: (id: number) => void;
+  onDelete: (_id: string) => void;
 };
 
 const SORT_OPTIONS = [
@@ -77,24 +77,24 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
     };
   }, [cards]);
 
-  let filteredCards = cards.filter(card =>
-    card.title.toLowerCase().includes(search.toLowerCase())
-  );
-
-  switch (sortOption) {
-    case 'scoreDesc':
-      filteredCards.sort((a, b) => b.score - a.score);
-      break;
-    case 'scoreAsc':
-      filteredCards.sort((a, b) => a.score - b.score);
-      break;
-    case 'titleAsc':
-      filteredCards.sort((a, b) => a.title.localeCompare(b.title));
-      break;
-    case 'titleDesc':
-      filteredCards.sort((a, b) => b.title.localeCompare(a.title));
-      break;
-  }
+  const filteredCards = cards
+    .filter(card =>
+      (card.name ?? '').toLowerCase().includes((search ?? '').toLowerCase())
+    )
+    .sort((a, b) => {
+      switch (sortOption) {
+        case 'scoreDesc':
+          return b.score - a.score;
+        case 'scoreAsc':
+          return a.score - b.score;
+        case 'titleAsc':
+          return (a.name ?? '').localeCompare(b.name ?? '');
+        case 'titleDesc':
+          return (b.name ?? '').localeCompare(a.name ?? '');
+        default:
+          return 0;
+      }
+    });
 
   const currentSortLabel = SORT_OPTIONS.find(o => o.value === sortOption)?.label || '';
 
@@ -183,8 +183,8 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
 
               <button
                 onClick={() => onEditClick({
-                  id: -1,
-                  title: '',
+                  _id: '_new',
+                  name: '',
                   description: '',
                   image_path: '',
                   score: 0,
@@ -212,7 +212,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
 
       <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredCards.map(card => {
+          {filteredCards.map((card, index) => {
             let textColor = '';
             let bgColor = '';
 
@@ -228,13 +228,13 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
             }
 
             return (
-              <Card3D key={card.id}>
+              <Card3D key={card._id ?? `card-${index}`}>
                 <div className="relative card rounded-lg overflow-hidden bg-[var(--thin)] hover:bg-[#2C3142]">
                   {mode === 'edit' && (
                     <button
                       onClick={() => onEditClick(card)}
                       className="absolute top-0 left-0 z-1 p-2 rounded bg-[var(--thin)] hover:bg-[var(--thin-brighter)] cursor-pointer translate-[50%]"
-                      aria-label={`Edit ${card.title}`}
+                      aria-label={`Edit ${card.name}`}
                     >
                       <img src={editIcon} alt="Edit" className="w-6 h-6" />
                     </button>
@@ -248,10 +248,10 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                       <img src={deleteIcon} alt="Delete" className="w-6 h-6" />
                     </button>
                   )}
-                  <img className="w-full h-36 object-cover" src={card.image_path} alt={`Cover of ${card.title}`} loading="lazy" />
+                  <img className="w-full h-36 object-cover" src={card.image_path} alt={`Cover of ${card.name}`} loading="lazy" />
                   <div className="px-5 pt-4 pb-5">
                     <div className="flex w-full items-center justify-between mb-2">
-                      <h3 className="text-lg font-semibold">{card.title}</h3>
+                      <h3 className="text-lg font-semibold">{card.name}</h3>
                       <span className={`px-2 rounded text-sm font-medium w-fit h-fit ${textColor} ${bgColor}`}>
                         {card.score}
                       </span>
@@ -269,12 +269,12 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
         <div className="fixed inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.32)] backdrop-blur-xs z-9">
           <div className="bg-[var(--background)] px-8 py-6 rounded-lg shadow-md text-center large-shadow-darker border-2 border-[var(--thin-brighter)]">
             <p className="text-lg mb-4">
-              Are you sure you want to delete <strong>{cardToDelete.title}</strong>?
+              Are you sure you want to delete <strong>{cardToDelete.name}</strong>?
             </p>
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => {
-                  onDelete(cardToDelete.id);
+                  onDelete(cardToDelete._id);
                   setCardToDelete(null);
                 }}
                 className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-500 cursor-pointer"

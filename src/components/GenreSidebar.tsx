@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 
-type Genre = {
-  id: number;
+export type Genre = {
+  _id: string;
   name: string;
 };
 
 type GenreSidebarProps = {
   genres: Genre[];
-  selectedGenre: number | null;
-  setSelectedGenre: (genreId: number | null) => void;
+  selectedGenre: string | null;
+  setSelectedGenre: (genreId: string | null) => void;
 };
 
 function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarProps) {
@@ -17,7 +17,6 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarP
   const [bottomGradientHeight, setBottomGradientHeight] = useState<number>(0);
   const listRef = useRef<HTMLUListElement>(null);
 
-  // filter genres by search input (case-insensitive)
   const filteredGenres = genres.filter(genre =>
     genre.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -31,15 +30,12 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarP
       const clientHeight = el.clientHeight;
 
       if (scrollTop === 0) {
-        // at top
         setTopGradientHeight(64);
         setBottomGradientHeight(0);
       } else if (scrollTop + clientHeight >= scrollHeight - 1) {
-        // at bottom (allowing 1px tolerance)
         setTopGradientHeight(0);
         setBottomGradientHeight(64);
       } else {
-        // middle
         setTopGradientHeight(64);
         setBottomGradientHeight(64);
       }
@@ -48,8 +44,7 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarP
     const current = listRef.current;
     if (current) {
       current.addEventListener('scroll', handleScroll);
-      // Initialize on mount
-      handleScroll();
+      handleScroll(); // Initial call
     }
 
     return () => {
@@ -58,7 +53,7 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarP
   }, [filteredGenres]);
 
   return (
-   <aside className="min-w-64 flex flex-col h-full relative">
+    <aside className="min-w-64 flex flex-col h-full relative">
       <div className="sticky top-0 bg-[var(--bg)] z-1">
         <h2 className="text-4xl font-semibold mb-5">Genres</h2>
 
@@ -74,7 +69,7 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarP
       <ul
         ref={listRef}
         className="space-y-1 overflow-y-auto flex-1 relative"
-        style={{ maxHeight: 'calc(100% - 130px)' }} // adjust based on your layout
+        style={{ maxHeight: 'calc(100% - 130px)' }}
       >
         <li>
           <button
@@ -88,11 +83,11 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarP
         </li>
 
         {filteredGenres.map((genre) => (
-          <li key={genre.id}>
+          <li key={genre._id}>
             <button
-              onClick={() => setSelectedGenre(genre.id)}
+              onClick={() => setSelectedGenre(genre._id)}
               className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] cursor-pointer ${
-                selectedGenre === genre.id ? 'bg-[var(--thin)]' : ''
+                selectedGenre === genre._id ? 'bg-[var(--thin)]' : ''
               }`}
             >
               {genre.name}
@@ -101,7 +96,6 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarP
         ))}
       </ul>
 
-      {/* Gradients */}
       <div
         className="pointer-events-none absolute bottom-0 left-0 w-full genre-top-gradient transition-height duration-600 ease-in-out"
         style={{

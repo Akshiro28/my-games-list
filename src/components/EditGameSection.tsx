@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 
 type Card = {
-  id: number;
-  title: string;
+  _id?: string;  // MongoDB _id is a string and optional for new cards
+  name: string;
   description: string;
   image_path: string;
   score: number;
-  genres?: number[]; // expected to be array of genre IDs
+  genres?: string[]; // array of genre _id strings
 };
 
 type Genre = {
-  id: number;
+  _id: string;
   name: string;
 };
 
@@ -24,7 +24,7 @@ type EditGameSectionProps = {
 function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps) {
   const [formData, setFormData] = useState<Card | null>(null);
   const [availableGenres, setAvailableGenres] = useState<Genre[]>([]);
-  const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
 
   useEffect(() => {
     async function fetchGenres() {
@@ -43,29 +43,30 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   useEffect(() => {
     if (card) {
       setFormData({
-        id: card.id,
-        title: card.title || '',
+        _id: card._id,
+        name: card.name || '',
         description: card.description || '',
         image_path: card.image_path || '',
         score: card.score || 0,
-        genres: card.genres || [], // ensure genres exists
+        genres: card.genres || [],
       });
       setSelectedGenres(card.genres || []);
     } else if (isNew) {
-      // Reset form when adding a new game
+      // Reset form for new game
       setFormData({
-        id: -1,
-        title: '',
+        name: '',
         description: '',
         image_path: '',
         score: 0,
         genres: [],
       });
       setSelectedGenres([]);
+    } else {
+      setFormData(null); // no card and not new -> no form
     }
   }, [card, isNew]);
 
-  if (!card || !formData) return null;
+  if (!formData) return null; // show form only if formData ready
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
@@ -79,24 +80,24 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     if (!formData) return;
 
     try {
-      const isNew = formData.id === -1;
+      const isCreating = isNew || formData._id === undefined;
 
-      const response = await fetch(`http://localhost:5000/api/cards${isNew ? '' : '/' + formData.id}`, {
-        method: isNew ? 'POST' : 'PUT',
+      const response = await fetch(`http://localhost:5000/api/cards${isCreating ? '' : '/' + formData._id}`, {
+        method: isCreating ? 'POST' : 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: formData.title,
+          name: formData.name,
           description: formData.description,
-          image_path: formData.image_path,
+          image: formData.image_path,
           score: formData.score,
           genres: selectedGenres,
         }),
       });
 
-      if (!response.ok) throw new Error(`${isNew ? 'Creating' : 'Updating'} game failed`);
+      if (!response.ok) throw new Error(`${isCreating ? 'Creating' : 'Updating'} game failed`);
 
       const updatedCard = await response.json();
-      onSave(updatedCard); // will also close the form
+      onSave(updatedCard);
     } catch (err) {
       console.error('Error saving card:', err);
     }
@@ -127,7 +128,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           <input
             type="text"
             name="title"
-            value={formData.title}
+            value={formData.name}
             onChange={handleChange}
             required
             className="w-full border-2 border-gray-300 rounded p-2 mt-1"
@@ -173,24 +174,20 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         </label>
 
         <div>
-          <div className="mb-1 font-semibold">
-            Genres (multiple select)
-          </div>
-          
+          <div className="mb-1 font-semibold">Genres (multiple select)</div>
+
           <div className="flex flex-wrap gap-2">
             {availableGenres.map((genre) => {
-              const isSelected = selectedGenres.includes(genre.id);
+              const isSelected = selectedGenres.includes(genre._id);
               return (
                 <button
-                  key={genre.id}
+                  key={genre._id}
                   type="button"
                   onClick={() => {
                     if (isSelected) {
-                      // Remove genre from selected
-                      setSelectedGenres(selectedGenres.filter((id) => id !== genre.id));
+                      setSelectedGenres(selectedGenres.filter((id) => id !== genre._id));
                     } else {
-                      // Add genre to selected
-                      setSelectedGenres([...selectedGenres, genre.id]);
+                      setSelectedGenres([...selectedGenres, genre._id]);
                     }
                   }}
                   className={`cursor-pointer rounded-md py-2 px-4 transition-colors
@@ -203,7 +200,6 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
             })}
           </div>
         </div>
-
 
         <button
           type="submit"

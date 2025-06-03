@@ -6,19 +6,13 @@ import EditGameSection from '../components/EditGameSection';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 
-type Card = {
-  id: number;
-  title: string;
-  description: string;
-  image_path: string;
-  score: number;
-  genres?: number[];
-};
+import type { Genre } from '../components/GenreSidebar';
+import type { Card } from '../components/CardGrid';
 
 function MainLayout() {
-  const [genres, setGenres] = useState([]);
+  const [genres, setGenres] = useState<Genre[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
-  const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
+  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [isNew, setIsNew] = useState(false);
 
@@ -41,25 +35,15 @@ function MainLayout() {
   };
 
   useEffect(() => {
-    const url = selectedGenre
-      ? `http://localhost:5000/api/cards?genre=${selectedGenre}`
-      : 'http://localhost:5000/api/cards';
-
-    axios.get(url)
-      .then(res => {
-        setCards(res.data);
-      })
-      .catch(err => console.error('Failed to fetch cards:', err));
+    fetchCards();
   }, [selectedGenre]);
 
   function handleEditClick(card: Card) {
-    if (card.id === -1) {
-      // Adding new game: skip fetch, just set the card directly
+    if (card._id === '-1' || card._id === '_new') {
       setEditingCard(card);
       setIsNew(true);
     } else {
-      // Editing existing game: fetch details from backend
-      fetch(`http://localhost:5000/api/cards/${card.id}`)
+      fetch(`http://localhost:5000/api/cards/${card._id}`)
         .then(res => res.json())
         .then(data => {
           setEditingCard(data);
@@ -75,18 +59,18 @@ function MainLayout() {
   }
 
   function handleSave() {
-    fetchCards(); // Refresh the cards after save to reflect DB updates
+    fetchCards();
     toast.success(isNew ? 'Game added successfully!' : 'Changes saved!');
     closeEditSection();
   }
 
-  function handleDelete(id: number) {
+  function handleDelete(id: string) {
     fetch(`http://localhost:5000/api/cards/${id}`, {
       method: 'DELETE',
     })
       .then(res => {
         if (res.ok) {
-          setCards(prevCards => prevCards.filter(card => card.id !== id));
+          setCards(prevCards => prevCards.filter(card => card._id !== id));
           toast.success('Game deleted!');
         } else {
           toast.error('Failed to delete game.');
@@ -123,20 +107,26 @@ function MainLayout() {
           </div>
         </div>
 
-        <div className="edit-section container absolute top-full left-[50%] translate-x-[-50%] w-fit h-full bg-[var(--background)]">
-          <EditGameSection
-            card={editingCard}
-            onClose={closeEditSection}
-            onSave={handleSave}
-            isNew={isNew}
-          />
+        <div
+          className={`edit-section container absolute top-full left-[50%] translate-x-[-50%] w-fit h-full bg-[var(--background)] ${
+            editingCard ? 'editing-active' : 'editing-inactive'
+          }`}
+        >
+          {editingCard && (
+            <EditGameSection
+              card={editingCard}
+              onClose={closeEditSection}
+              onSave={handleSave}
+              isNew={isNew}
+            />
+          )}
         </div>
       </div>
 
       <Toaster
         position="top-center"
         toastOptions={{ duration: 4000 }}
-        containerStyle={{ top: '29px' }} // Custom offset from top
+        containerStyle={{ top: '29px' }}
       />
     </>
   );
