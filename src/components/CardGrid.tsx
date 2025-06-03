@@ -7,7 +7,7 @@ export type Card = {
   _id: string;
   name: string;
   description: string;
-  image_path: string;
+  image: string;
   score: number;
   genres?: string[];
 };
@@ -186,7 +186,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                   _id: '_new',
                   name: '',
                   description: '',
-                  image_path: '',
+                  image: '',
                   score: 0,
                   genres: [],
                 })}
@@ -248,7 +248,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                       <img src={deleteIcon} alt="Delete" className="w-6 h-6" />
                     </button>
                   )}
-                  <img className="w-full h-36 object-cover" src={card.image_path} alt={`Cover of ${card.name}`} loading="lazy" />
+                  <img className="w-full h-36 object-cover" src={card.image} alt={`Cover of ${card.name}`} loading="lazy" />
                   <div className="px-5 pt-4 pb-5">
                     <div className="flex w-full items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold">{card.name}</h3>

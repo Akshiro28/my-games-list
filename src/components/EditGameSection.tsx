@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 type Card = {
-  _id?: string;  // MongoDB _id is a string and optional for new cards
+  _id?: string;
   name: string;
   description: string;
-  image_path: string;
+  image: string;
   score: number;
-  genres?: string[]; // array of genre _id strings
+  genres?: string[];
 };
 
 type Genre = {
@@ -25,6 +25,11 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   const [formData, setFormData] = useState<Card | null>(null);
   const [availableGenres, setAvailableGenres] = useState<Genre[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
     async function fetchGenres() {
@@ -46,27 +51,30 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         _id: card._id,
         name: card.name || '',
         description: card.description || '',
-        image_path: card.image_path || '',
+        image: card.image || '',
         score: card.score || 0,
         genres: card.genres || [],
       });
       setSelectedGenres(card.genres || []);
+      setImagePreview(card.image || '');
+      setSelectedFile(null);
     } else if (isNew) {
-      // Reset form for new game
       setFormData({
         name: '',
         description: '',
-        image_path: '',
+        image: '',
         score: 0,
         genres: [],
       });
       setSelectedGenres([]);
+      setImagePreview('');
+      setSelectedFile(null);
     } else {
-      setFormData(null); // no card and not new -> no form
+      setFormData(null);
     }
   }, [card, isNew]);
 
-  if (!formData) return null; // show form only if formData ready
+  if (!formData) return null;
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
@@ -75,11 +83,69 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     );
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      setSelectedFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  }
+
+  function handleClickDropzone() {
+    inputRef.current?.click();
+  }
+
+  async function uploadImageToCloudinary(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'unsigned_preset'); // replace with your preset
+
+    const res = await fetch('https://api.cloudinary.com/v1_1/dthzdr1wz/image/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (data.secure_url) {
+      return data.secure_url;
+    } else {
+      throw new Error('Image upload failed');
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formData) return;
 
     try {
+      let imageUrl = formData.image;
+
+      if (selectedFile) {
+        imageUrl = await uploadImageToCloudinary(selectedFile);
+      }
+
       const isCreating = isNew || formData._id === undefined;
 
       const response = await fetch(`http://localhost:5000/api/cards${isCreating ? '' : '/' + formData._id}`, {
@@ -88,7 +154,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         body: JSON.stringify({
           name: formData.name,
           description: formData.description,
-          image: formData.image_path,
+          image: imageUrl,
           score: formData.score,
           genres: selectedGenres,
         }),
@@ -104,12 +170,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   }
 
   return (
-    <section
-      className="h-full overflow-auto pt-5 pe-4"
-      aria-modal="true"
-      role="dialog"
-      aria-labelledby="edit-game-title"
-    >
+    <section className="h-full overflow-auto pt-5 pe-4" aria-modal="true" role="dialog" aria-labelledby="edit-game-title">
       <button
         onClick={onClose}
         className="mb-6 bg-[var(--thin)] py-2 px-4 rounded-md cursor-pointer hover:bg-[var(--thin-brighter)] transition-colors"
@@ -127,7 +188,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           Title
           <input
             type="text"
-            name="title"
+            name="name"
             value={formData.name}
             onChange={handleChange}
             required
@@ -147,16 +208,47 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           />
         </label>
 
+        {/* ✅ MOVED input outside */}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          style={{ display: 'none' }} // ✅ hidden properly
+        />
+
+        {/* ✅ Dropzone only wraps preview/label now */}
         <label>
-          Image URL
-          <input
-            type="text"
-            name="image_path"
-            value={formData.image_path}
-            onChange={handleChange}
-            required
-            className="w-full border-2 border-gray-300 rounded p-2 mt-1"
-          />
+          Upload Image
+          <div
+            onClick={handleClickDropzone}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            tabIndex={0}
+            role="button"
+            aria-label="Upload image by clicking or dragging and dropping"
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                handleClickDropzone();
+                e.preventDefault();
+              }
+            }}
+            className={`mt-1 w-full border-2 rounded p-6 text-center cursor-pointer select-none
+              ${dragOver ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-white'}
+            `}
+            style={{ minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            {imagePreview ? (
+              <img
+                src={imagePreview}
+                alt="Selected preview"
+                className="max-h-48 max-w-full object-contain rounded"
+              />
+            ) : (
+              <p className="text-gray-500">Click or drag & drop an image here</p>
+            )}
+          </div>
         </label>
 
         <label>
@@ -191,7 +283,11 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                     }
                   }}
                   className={`cursor-pointer rounded-md py-2 px-4 transition-colors
-                    ${isSelected ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]' : 'bg-[var(--thin)] hover:bg-[var(--thin-brighter)]'}`}
+                    ${
+                      isSelected
+                        ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]'
+                        : 'bg-[var(--thin)] hover:bg-[var(--thin-brighter)]'
+                    }`}
                   aria-pressed={isSelected}
                 >
                   {genre.name}
