@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import editIcon from '/logo/edit.png';
 import deleteIcon from '/logo/delete.png';
+import Card3D from './Card3D';
 
 type Card = {
   id: number;
@@ -32,8 +33,8 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [mode, setMode] = useState<'edit' | 'delete' | null>(null);
 
-  const [topGradientOpacity, setTopGradientOpacity] = useState(0);
-  const [bottomGradientOpacity, setBottomGradientOpacity] = useState(1);
+  const [topGradientHeight, setTopGradientHeight] = useState<number>(0);
+  const [bottomGradientHeight, setBottomGradientHeight] = useState<number>(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,14 +56,14 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
       const clientHeight = el.clientHeight;
 
       if (scrollTop === 0) {
-        setTopGradientOpacity(1);
-        setBottomGradientOpacity(0);
+        setTopGradientHeight(64);
+        setBottomGradientHeight(0);
       } else if (scrollTop + clientHeight >= scrollHeight - 1) {
-        setTopGradientOpacity(0);
-        setBottomGradientOpacity(1);
+        setTopGradientHeight(0);
+        setBottomGradientHeight(64);
       } else {
-        setTopGradientOpacity(1);
-        setBottomGradientOpacity(1);
+        setTopGradientHeight(64);
+        setBottomGradientHeight(64);
       }
     }
 
@@ -98,10 +99,10 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
   const currentSortLabel = SORT_OPTIONS.find(o => o.value === sortOption)?.label || '';
 
   return (
-    <main className="flex-1 ps-4.5 relative flex flex-col h-full">
+    <main className="flex-1 ps-6 relative flex flex-col h-full">
       <div className="sticky top-0 bg-[var(--bg)] z-8">
         <h1 className="text-4xl font-semibold mb-5 ps-1">Games</h1>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4.5 ps-0.5 w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6 w-full">
           <div className="flex flex-wrap gap-2 justify-center sm:justify-start w-full">
             <div className="flex gap-2 w-full sm:w-auto sm:flex-1">
               <div className="relative w-full max-w-56 shrink-0" ref={dropdownRef}>
@@ -157,7 +158,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                 )}
               </div>
 
-              <div className="flex-grow w-100">
+              <div className="flex-grow lg:w-100 w-full">
                 <input
                   type="text"
                   placeholder="Search games..."
@@ -210,7 +211,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 p-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredCards.map(card => {
             let textColor = '';
             let bgColor = '';
@@ -227,36 +228,38 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
             }
 
             return (
-              <div key={card.id} className="relative card rounded-lg overflow-hidden bg-[var(--thin)] hover:scale-103 hover:bg-[#2C3142]">
-                {mode === 'edit' && (
-                  <button
-                    onClick={() => onEditClick(card)}
-                    className="absolute top-0 left-0 z-1 p-2 rounded bg-[var(--thin)] hover:bg-[var(--thin-brighter)] cursor-pointer translate-[50%]"
-                    aria-label={`Edit ${card.title}`}
-                  >
-                    <img src={editIcon} alt="Edit" className="w-6 h-6" />
-                  </button>
-                )}
-                {mode === 'delete' && (
-                  <button
-                    onClick={() => setCardToDelete(card)}
-                    className="absolute top-0 left-0 z-1 p-2 rounded bg-red-600 hover:bg-red-500 cursor-pointer translate-[50%]"
-                    aria-label="Delete this game"
-                  >
-                    <img src={deleteIcon} alt="Delete" className="w-6 h-6" />
-                  </button>
-                )}
-                <img className="w-full h-36 object-cover" src={card.image_path} alt={`Cover of ${card.title}`} loading="lazy" />
-                <div className="px-5 pt-4 pb-5">
-                  <div className="flex w-full items-center justify-between mb-2">
-                    <h3 className="text-lg font-semibold">{card.title}</h3>
-                    <span className={`px-2 rounded text-sm font-medium w-fit h-fit ${textColor} ${bgColor}`}>
-                      {card.score}
-                    </span>
+              <Card3D key={card.id}>
+                <div className="relative card rounded-lg overflow-hidden bg-[var(--thin)] hover:bg-[#2C3142]">
+                  {mode === 'edit' && (
+                    <button
+                      onClick={() => onEditClick(card)}
+                      className="absolute top-0 left-0 z-1 p-2 rounded bg-[var(--thin)] hover:bg-[var(--thin-brighter)] cursor-pointer translate-[50%]"
+                      aria-label={`Edit ${card.title}`}
+                    >
+                      <img src={editIcon} alt="Edit" className="w-6 h-6" />
+                    </button>
+                  )}
+                  {mode === 'delete' && (
+                    <button
+                      onClick={() => setCardToDelete(card)}
+                      className="absolute top-0 left-0 z-1 p-2 rounded bg-red-600 hover:bg-red-500 cursor-pointer translate-[50%]"
+                      aria-label="Delete this game"
+                    >
+                      <img src={deleteIcon} alt="Delete" className="w-6 h-6" />
+                    </button>
+                  )}
+                  <img className="w-full h-36 object-cover" src={card.image_path} alt={`Cover of ${card.title}`} loading="lazy" />
+                  <div className="px-5 pt-4 pb-5">
+                    <div className="flex w-full items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold">{card.title}</h3>
+                      <span className={`px-2 rounded text-sm font-medium w-fit h-fit ${textColor} ${bgColor}`}>
+                        {card.score}
+                      </span>
+                    </div>
+                    <p className="text-sm text-[var(--text-thin)]">{card.description}</p>
                   </div>
-                  <p className="text-sm text-[var(--text-thin)]">{card.description}</p>
                 </div>
-              </div>
+              </Card3D>
             );
           })}
         </div>
@@ -291,17 +294,17 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
 
       {/* Gradient overlays */}
       <div
-        className="pointer-events-none absolute bottom-0 left-0 w-full h-[64px] card-top-gradient transition-opacity duration-500"
+        className="pointer-events-none absolute bottom-0 left-0 w-full card-top-gradient transition-height duration-600 ease-in-out"
         style={{
           background: 'linear-gradient(to top, rgba(28,31,42,1), transparent)',
-          opacity: topGradientOpacity,
+          height: topGradientHeight,
         }}
       />
       <div
-        className="pointer-events-none absolute top-30.5 left-0 w-full h-[64px] card-bottom-gradient transition-opacity duration-500"
+        className="pointer-events-none absolute top-32 left-0 w-full card-bottom-gradient transition-height duration-600 ease-in-out"
         style={{
           background: 'linear-gradient(to bottom, rgba(28,31,42,1), transparent)',
-          opacity: bottomGradientOpacity,
+          height: bottomGradientHeight,
         }}
       />
     </main>
