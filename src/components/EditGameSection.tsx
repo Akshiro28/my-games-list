@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 
 type Card = {
   _id?: string;
@@ -31,6 +32,8 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
+  const MAX_FILE_SIZE = 200 * 1024; // 200KB
+
   useEffect(() => {
     async function fetchGenres() {
       try {
@@ -41,7 +44,6 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         console.error('Failed to fetch genres', err);
       }
     }
-
     fetchGenres();
   }, []);
 
@@ -78,14 +80,35 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
-    setFormData(prev =>
-      prev ? { ...prev, [name]: name === 'score' ? Number(value) : value } : null
-    );
+
+    if (name === 'score') {
+      setFormData(prev =>
+        prev ? { ...prev, score: value === '' ? 0 : Number(value) } : null
+      );
+    } else if (name === 'description') {
+      if (value.length > 100) {
+        toast.error("Description cannot exceed 100 characters.");
+        return;
+      }
+      setFormData(prev => prev ? { ...prev, description: value } : null);
+    } else if (name === 'name') {
+      if (value.length > 100) {
+        toast.error("Title cannot exceed 100 characters.");
+        return;
+      }
+      setFormData(prev => prev ? { ...prev, name: value } : null);
+    } else {
+      setFormData(prev => prev ? { ...prev, [name]: value } : null);
+    }
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error("Image size must be 200KB or less.");
+        return;
+      }
       setSelectedFile(file);
       setImagePreview(URL.createObjectURL(file));
     }
@@ -107,6 +130,10 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error("Image size must be 200KB or less.");
+        return;
+      }
       setSelectedFile(file);
       setImagePreview(URL.createObjectURL(file));
     }
@@ -139,6 +166,24 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     e.preventDefault();
     if (!formData) return;
 
+    // Manual validation with toast notifications
+    if (!formData.name.trim()) {
+      toast.error('Title cannot be empty');
+      return;
+    }
+    if (!formData.description.trim()) {
+      toast.error('Description cannot be empty');
+      return;
+    }
+    if (formData.score < 1 || formData.score > 100) {
+      toast.error('Score must be between 1 and 100');
+      return;
+    }
+    if (!formData.image && !selectedFile) {
+      toast.error('Please upload an image');
+      return;
+    }
+
     try {
       let imageUrl = formData.image;
 
@@ -148,6 +193,8 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
       const isCreating = isNew || formData._id === undefined;
 
+      const safeScore = typeof formData.score === 'number' && !isNaN(formData.score) ? formData.score : 0;
+
       const response = await fetch(`http://localhost:5000/api/cards${isCreating ? '' : '/' + formData._id}`, {
         method: isCreating ? 'POST' : 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -155,7 +202,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           name: formData.name,
           description: formData.description,
           image: imageUrl,
-          score: formData.score,
+          score: safeScore,
           genres: selectedGenres,
         }),
       });
@@ -166,6 +213,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       onSave(updatedCard);
     } catch (err) {
       console.error('Error saving card:', err);
+      toast.error('Failed to save the game. Please try again.');
     }
   }
 
@@ -173,7 +221,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     <section className="h-full overflow-auto pt-5 pe-4" aria-modal="true" role="dialog" aria-labelledby="edit-game-title">
       <button
         onClick={onClose}
-        className="mb-6 bg-[var(--thin)] py-2 px-4 rounded-md cursor-pointer hover:bg-[var(--thin-brighter)] transition-colors"
+        className="mb-6 bg-[var(--thin)] py-2 px-4 rounded-md cursor-pointer hover:bg-[var(--thin-brighter)]"
         aria-label="Go back to games list"
       >
         &larr; Cancel
@@ -184,42 +232,40 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       </h2>
 
       <form onSubmit={handleSubmit} className="w-200 max-w-full flex flex-col gap-6">
-        <label>
-          Title
+        <label className="block">
+          <span className="mb-2 block">Title (100 characters max)</span>
           <input
             type="text"
             name="name"
             value={formData.name}
             onChange={handleChange}
-            required
-            className="w-full border-2 border-gray-300 rounded p-2 mt-1"
+            placeholder="Enter game title"
+            className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
           />
         </label>
 
-        <label>
-          Description
+        <label className="block">
+          <span className="mb-2 block">Description (100 characters max)</span>
           <textarea
             name="description"
             value={formData.description}
             onChange={handleChange}
             rows={4}
-            required
-            className="w-full border-2 border-gray-300 rounded p-2 mt-1"
+            placeholder="Enter game description"
+            className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
           />
         </label>
 
-        {/* ✅ MOVED input outside */}
         <input
           ref={inputRef}
           type="file"
           accept="image/*"
           onChange={handleFileChange}
-          style={{ display: 'none' }} // ✅ hidden properly
+          style={{ display: 'none' }}
         />
 
-        {/* ✅ Dropzone only wraps preview/label now */}
-        <label>
-          Upload Image
+        <label className="block">
+          <span className="mb-2 block">Upload Image (200 KB max)</span>
           <div
             onClick={handleClickDropzone}
             onDragOver={handleDragOver}
@@ -234,8 +280,8 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                 e.preventDefault();
               }
             }}
-            className={`mt-1 w-full border-2 rounded p-6 text-center cursor-pointer select-none
-              ${dragOver ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-white'}
+            className={`group w-full border-2 border-dashed border-[var(--thin)] rounded-md p-4 text-center cursor-pointer select-none hover:border-[var(--thin-brighter)]
+              ${dragOver ? 'border-[var(--thin-brighter-brighter)] bg-[var(--thin)]' : 'border-[var(--thin)]'}
             `}
             style={{ minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
@@ -246,13 +292,15 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                 className="max-h-48 max-w-full object-contain rounded"
               />
             ) : (
-              <p className="text-gray-500">Click or drag & drop an image here</p>
+              <p className="text-[var(--thin-brighter)] group-hover:text-[var(--thin-brighter-brighter)]">
+                Click or drag & drop an image here
+              </p>
             )}
           </div>
         </label>
 
-        <label>
-          Score
+        <label className="block">
+          <span className="mb-2 block">Score (1-100)</span>
           <input
             type="number"
             name="score"
@@ -260,8 +308,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
             min={0}
             max={100}
             onChange={handleChange}
-            required
-            className="w-full border-2 border-gray-300 rounded p-2 mt-1"
+            className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)]"
           />
         </label>
 
@@ -282,7 +329,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                       setSelectedGenres([...selectedGenres, genre._id]);
                     }
                   }}
-                  className={`cursor-pointer rounded-md py-2 px-4 transition-colors
+                  className={`cursor-pointer rounded-md py-2 px-4
                     ${
                       isSelected
                         ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]'
@@ -299,9 +346,9 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
         <button
           type="submit"
-          className="bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 cursor-pointer"
+          className="bg-[var(--thin)] hover:bg-[var(--thin-brighter)] text-white py-2 rounded-md cursor-pointer"
         >
-          Save Changes
+          {isNew ? 'Add Game' : 'Save Changes'}
         </button>
       </form>
     </section>
