@@ -108,7 +108,7 @@ function MainLayout() {
         </div>
 
         <div
-          className={`edit-section container absolute top-full left-[50%] translate-x-[-50%] w-fit h-full bg-[var(--background)] ${
+          className={`edit-section container absolute top-full w-full h-full bg-[var(--background)] ${
             editingCard ? 'editing-active' : 'editing-inactive'
           }`}
         >

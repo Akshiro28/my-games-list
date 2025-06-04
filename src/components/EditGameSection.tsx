@@ -218,139 +218,141 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   }
 
   return (
-    <section className="h-full overflow-auto pt-5 pe-4" aria-modal="true" role="dialog" aria-labelledby="edit-game-title">
-      <button
-        onClick={onClose}
-        className="mb-6 bg-[var(--thin)] py-2 px-4 rounded-md cursor-pointer hover:bg-[var(--thin-brighter)]"
-        aria-label="Go back to games list"
-      >
-        &larr; Cancel
-      </button>
-
-      <h2 id="edit-game-title" className="text-3xl font-semibold mb-6">
-        {isNew ? 'Add New Game' : 'Edit Game'}
-      </h2>
-
-      <form onSubmit={handleSubmit} className="w-200 max-w-full flex flex-col gap-6">
-        <label className="block">
-          <span className="mb-2 block">Title (100 characters max)</span>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="Enter game title"
-            className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
-          />
-        </label>
-
-        <label className="block">
-          <span className="mb-2 block">Description (100 characters max)</span>
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            rows={4}
-            placeholder="Enter game description"
-            className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
-          />
-        </label>
-
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          style={{ display: 'none' }}
-        />
-
-        <label className="block">
-          <span className="mb-2 block">Upload Image (200 KB max)</span>
-          <div
-            onClick={handleClickDropzone}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            tabIndex={0}
-            role="button"
-            aria-label="Upload image by clicking or dragging and dropping"
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                handleClickDropzone();
-                e.preventDefault();
-              }
-            }}
-            className={`group w-full border-2 border-dashed border-[var(--thin)] rounded-md p-4 text-center cursor-pointer select-none hover:border-[var(--thin-brighter)]
-              ${dragOver ? 'border-[var(--thin-brighter-brighter)] bg-[var(--thin)]' : 'border-[var(--thin)]'}
-            `}
-            style={{ minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            {imagePreview ? (
-              <img
-                src={imagePreview}
-                alt="Selected preview"
-                className="max-h-48 max-w-full object-contain rounded"
-              />
-            ) : (
-              <p className="text-[var(--thin-brighter)] group-hover:text-[var(--thin-brighter-brighter)]">
-                Click or drag & drop an image here
-              </p>
-            )}
-          </div>
-        </label>
-
-        <label className="block">
-          <span className="mb-2 block">Score (1-100)</span>
-          <input
-            type="number"
-            name="score"
-            value={formData.score}
-            min={0}
-            max={100}
-            onChange={handleChange}
-            className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)]"
-          />
-        </label>
-
-        <div>
-          <div className="mb-1 font-semibold">Genres (multiple select)</div>
-
-          <div className="flex flex-wrap gap-2">
-            {availableGenres.map((genre) => {
-              const isSelected = selectedGenres.includes(genre._id);
-              return (
-                <button
-                  key={genre._id}
-                  type="button"
-                  onClick={() => {
-                    if (isSelected) {
-                      setSelectedGenres(selectedGenres.filter((id) => id !== genre._id));
-                    } else {
-                      setSelectedGenres([...selectedGenres, genre._id]);
-                    }
-                  }}
-                  className={`cursor-pointer rounded-md py-2 px-4
-                    ${
-                      isSelected
-                        ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]'
-                        : 'bg-[var(--thin)] hover:bg-[var(--thin-brighter)]'
-                    }`}
-                  aria-pressed={isSelected}
-                >
-                  {genre.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
+    <section className="w-full container mx-auto h-full overflow-auto pt-5" aria-modal="true" role="dialog" aria-labelledby="edit-game-title">
+      <div className="mx-auto w-fit">
         <button
-          type="submit"
-          className="bg-[var(--thin)] hover:bg-[var(--thin-brighter)] text-white py-2 rounded-md cursor-pointer"
+          onClick={onClose}
+          className="mb-6 bg-[var(--thin)] py-2 px-4 rounded-md cursor-pointer hover:bg-[var(--thin-brighter)]"
+          aria-label="Go back to games list"
         >
-          {isNew ? 'Add Game' : 'Save Changes'}
+          &larr; Cancel
         </button>
-      </form>
+
+        <h2 id="edit-game-title" className="text-3xl font-semibold mb-6">
+          {isNew ? 'Add New Game' : 'Edit Game'}
+        </h2>
+
+        <form onSubmit={handleSubmit} className="w-200 max-w-full flex flex-col gap-6">
+          <label className="block">
+            <span className="mb-2 block">Title (100 characters max)</span>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Enter game title"
+              className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block">Description (100 characters max)</span>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={4}
+              placeholder="Enter game description"
+              className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
+            />
+          </label>
+
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+          />
+
+          <label className="block">
+            <span className="mb-2 block">Upload Image (200 KB max)</span>
+            <div
+              onClick={handleClickDropzone}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              tabIndex={0}
+              role="button"
+              aria-label="Upload image by clicking or dragging and dropping"
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  handleClickDropzone();
+                  e.preventDefault();
+                }
+              }}
+              className={`group w-full border-2 border-dashed border-[var(--thin)] rounded-md p-4 text-center cursor-pointer select-none hover:border-[var(--thin-brighter)]
+                ${dragOver ? 'border-[var(--thin-brighter-brighter)] bg-[var(--thin)]' : 'border-[var(--thin)]'}
+              `}
+              style={{ minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              {imagePreview ? (
+                <img
+                  src={imagePreview}
+                  alt="Selected preview"
+                  className="max-h-48 max-w-full object-contain rounded"
+                />
+              ) : (
+                <p className="text-[var(--thin-brighter)] group-hover:text-[var(--thin-brighter-brighter)]">
+                  Click or drag & drop an image here
+                </p>
+              )}
+            </div>
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block">Score (1-100)</span>
+            <input
+              type="number"
+              name="score"
+              value={formData.score}
+              min={0}
+              max={100}
+              onChange={handleChange}
+              className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)]"
+            />
+          </label>
+
+          <div>
+            <div className="mb-1 font-semibold">Genres (multiple select)</div>
+
+            <div className="flex flex-wrap gap-2">
+              {availableGenres.map((genre) => {
+                const isSelected = selectedGenres.includes(genre._id);
+                return (
+                  <button
+                    key={genre._id}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedGenres(selectedGenres.filter((id) => id !== genre._id));
+                      } else {
+                        setSelectedGenres([...selectedGenres, genre._id]);
+                      }
+                    }}
+                    className={`cursor-pointer rounded-md py-2 px-4
+                      ${
+                        isSelected
+                          ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]'
+                          : 'bg-[var(--thin)] hover:bg-[var(--thin-brighter)]'
+                      }`}
+                    aria-pressed={isSelected}
+                  >
+                    {genre.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="bg-[var(--thin)] hover:bg-[var(--thin-brighter)] text-white py-2 rounded-md cursor-pointer"
+          >
+            {isNew ? 'Add Game' : 'Save Changes'}
+          </button>
+        </form>
+      </div>
     </section>
   );
 }
