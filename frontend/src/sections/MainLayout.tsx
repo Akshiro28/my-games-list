@@ -9,6 +9,8 @@ import toast from 'react-hot-toast';
 import type { Genre } from '../components/GenreSidebar';
 import type { Card } from '../components/CardGrid';
 
+const API_BASE_URL = 'https://your-api-domain.com/api'; // replace with your production API base URL
+
 function MainLayout() {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
@@ -18,15 +20,15 @@ function MainLayout() {
 
   useEffect(() => {
     axios
-      .get('http://localhost:5000/api/genres')
+      .get(`${API_BASE_URL}/genres`)
       .then(res => setGenres(res.data))
       .catch(err => console.error('Failed to fetch genres:', err));
   }, []);
 
   const fetchCards = () => {
     const url = selectedGenre
-      ? `http://localhost:5000/api/cards?genre=${selectedGenre}`
-      : `http://localhost:5000/api/cards`;
+      ? `${API_BASE_URL}/cards?genre=${selectedGenre}`
+      : `${API_BASE_URL}/cards`;
 
     axios
       .get(url)
@@ -43,7 +45,7 @@ function MainLayout() {
       setEditingCard(card);
       setIsNew(true);
     } else {
-      fetch(`http://localhost:5000/api/cards/${card._id}`)
+      fetch(`${API_BASE_URL}/cards/${card._id}`)
         .then(res => res.json())
         .then(data => {
           setEditingCard(data);
@@ -65,7 +67,7 @@ function MainLayout() {
   }
 
   function handleDelete(id: string) {
-    fetch(`http://localhost:5000/api/cards/${id}`, {
+    fetch(`${API_BASE_URL}/cards/${id}`, {
       method: 'DELETE',
     })
       .then(res => {

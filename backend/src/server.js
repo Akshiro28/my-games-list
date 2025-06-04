@@ -1,15 +1,17 @@
-require('dotenv').config(); // Load env vars from .env as first thing
+require('dotenv').config(); // Load env vars from .env
 
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
+// Env vars
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.DB_NAME;
 
@@ -23,6 +25,7 @@ if (!dbName) {
   process.exit(1);
 }
 
+// MongoDB setup
 const client = new MongoClient(uri);
 
 let db;
@@ -35,16 +38,16 @@ async function connectDB() {
     db = client.db(dbName);
     cardsCollection = db.collection('cards');
     genresCollection = db.collection('genres');
-    console.log('Connected to MongoDB');
+    console.log(`✅ Connected to MongoDB database: ${dbName}`);
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    console.error('❌ MongoDB connection error:', error);
     process.exit(1);
   }
 }
 
 connectDB();
 
-// --- GENRES ---
+// --- GENRES ROUTES ---
 
 // GET all genres
 app.get('/api/genres', async (req, res) => {
@@ -57,9 +60,9 @@ app.get('/api/genres', async (req, res) => {
   }
 });
 
-// --- CARDS ---
+// --- CARDS ROUTES ---
 
-// GET all cards
+// GET all cards (optionally filtered by genre)
 app.get('/api/cards', async (req, res) => {
   try {
     const genreId = req.query.genre;
@@ -74,17 +77,16 @@ app.get('/api/cards', async (req, res) => {
 
 // GET card by ID
 app.get('/api/cards/:id', async (req, res) => {
-  try {
-    const cardId = req.params.id;
-    if (!ObjectId.isValid(cardId)) {
-      return res.status(400).json({ error: 'Invalid card ID' });
-    }
+  const cardId = req.params.id;
+  if (!ObjectId.isValid(cardId)) {
+    return res.status(400).json({ error: 'Invalid card ID' });
+  }
 
+  try {
     const card = await cardsCollection.findOne({ _id: new ObjectId(cardId) });
     if (!card) {
       return res.status(404).json({ error: 'Card not found' });
     }
-
     res.json(card);
   } catch (err) {
     console.error('Failed to get card by ID:', err);
@@ -92,15 +94,15 @@ app.get('/api/cards/:id', async (req, res) => {
   }
 });
 
-// POST add new card
+// POST create new card
 app.post('/api/cards', async (req, res) => {
+  const { name, image, score, description, genres } = req.body;
+
+  if (!name || !image || !score || !description || !Array.isArray(genres)) {
+    return res.status(400).json({ error: 'Missing required fields or genres must be an array' });
+  }
+
   try {
-    const { name, image, score, description, genres } = req.body;
-
-    if (!name || !image || !score || !description || !Array.isArray(genres)) {
-      return res.status(400).json({ error: 'Missing required fields or genres must be an array' });
-    }
-
     const newCard = {
       name,
       image,
@@ -118,19 +120,19 @@ app.post('/api/cards', async (req, res) => {
   }
 });
 
-// PUT update card by ID
+// PUT update card
 app.put('/api/cards/:id', async (req, res) => {
+  const cardId = req.params.id;
+  if (!ObjectId.isValid(cardId)) {
+    return res.status(400).json({ error: 'Invalid card ID' });
+  }
+
+  const { name, image, score, description, genres } = req.body;
+  if (!name || !image || !score || !description || !Array.isArray(genres)) {
+    return res.status(400).json({ error: 'Missing required fields or genres must be an array' });
+  }
+
   try {
-    const cardId = req.params.id;
-    if (!ObjectId.isValid(cardId)) {
-      return res.status(400).json({ error: 'Invalid card ID' });
-    }
-
-    const { name, image, score, description, genres } = req.body;
-    if (!name || !image || !score || !description || !Array.isArray(genres)) {
-      return res.status(400).json({ error: 'Missing required fields or genres must be an array' });
-    }
-
     const updatedCard = {
       name,
       image,
@@ -156,14 +158,14 @@ app.put('/api/cards/:id', async (req, res) => {
   }
 });
 
-// DELETE card by ID
+// DELETE card
 app.delete('/api/cards/:id', async (req, res) => {
-  try {
-    const cardId = req.params.id;
-    if (!ObjectId.isValid(cardId)) {
-      return res.status(400).json({ error: 'Invalid card ID' });
-    }
+  const cardId = req.params.id;
+  if (!ObjectId.isValid(cardId)) {
+    return res.status(400).json({ error: 'Invalid card ID' });
+  }
 
+  try {
     const result = await cardsCollection.deleteOne({ _id: new ObjectId(cardId) });
 
     if (result.deletedCount === 0) {
@@ -177,6 +179,7 @@ app.delete('/api/cards/:id', async (req, res) => {
   }
 });
 
+// --- SERVER START ---
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}/api`);
 });

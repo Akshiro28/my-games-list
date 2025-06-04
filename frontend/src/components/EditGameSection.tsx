@@ -23,6 +23,7 @@ type EditGameSectionProps = {
 };
 
 function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps) {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const [formData, setFormData] = useState<Card | null>(null);
   const [availableGenres, setAvailableGenres] = useState<Genre[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -37,7 +38,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   useEffect(() => {
     async function fetchGenres() {
       try {
-        const res = await fetch('http://localhost:5000/api/genres');
+        const res = await fetch(`${baseUrl}/api/genres`);
         const data = await res.json();
         setAvailableGenres(data);
       } catch (err) {
@@ -45,7 +46,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       }
     }
     fetchGenres();
-  }, []);
+  }, [baseUrl]);
 
   useEffect(() => {
     if (card) {
@@ -166,7 +167,6 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     e.preventDefault();
     if (!formData) return;
 
-    // Manual validation with toast notifications
     if (!formData.name.trim()) {
       toast.error('Title cannot be empty');
       return;
@@ -195,7 +195,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
       const safeScore = typeof formData.score === 'number' && !isNaN(formData.score) ? formData.score : 0;
 
-      const response = await fetch(`http://localhost:5000/api/cards${isCreating ? '' : '/' + formData._id}`, {
+      const response = await fetch(`${baseUrl}/api/cards${isCreating ? '' : '/' + formData._id}`, {
         method: isCreating ? 'POST' : 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
