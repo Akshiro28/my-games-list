@@ -1,3 +1,5 @@
+require('dotenv').config(); // Load env vars from .env as first thing
+
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ObjectId } = require('mongodb');
@@ -8,7 +10,19 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json());
 
-const uri = "mongodb+srv://Akshiro:72UfIdAEYOA7maIF@cluster0.pkzml06.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = process.env.MONGODB_URI;
+const dbName = process.env.DB_NAME;
+
+if (!uri) {
+  console.error('ERROR: MONGODB_URI environment variable not set.');
+  process.exit(1);
+}
+
+if (!dbName) {
+  console.error('ERROR: DB_NAME environment variable not set.');
+  process.exit(1);
+}
+
 const client = new MongoClient(uri);
 
 let db;
@@ -18,14 +32,16 @@ let genresCollection;
 async function connectDB() {
   try {
     await client.connect();
-    db = client.db('Cluster0');
+    db = client.db(dbName);
     cardsCollection = db.collection('cards');
     genresCollection = db.collection('genres');
     console.log('Connected to MongoDB');
   } catch (error) {
     console.error('MongoDB connection error:', error);
+    process.exit(1);
   }
 }
+
 connectDB();
 
 // --- GENRES ---
@@ -76,13 +92,11 @@ app.get('/api/cards/:id', async (req, res) => {
   }
 });
 
-
 // POST add new card
 app.post('/api/cards', async (req, res) => {
   try {
     const { name, image, score, description, genres } = req.body;
 
-    // Basic validation
     if (!name || !image || !score || !description || !Array.isArray(genres)) {
       return res.status(400).json({ error: 'Missing required fields or genres must be an array' });
     }
@@ -92,7 +106,7 @@ app.post('/api/cards', async (req, res) => {
       image,
       score,
       description,
-      genres, // store genre IDs or names as array
+      genres,
       createdAt: new Date(),
     };
 
