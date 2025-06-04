@@ -48,7 +48,7 @@ app.get('/api/cards', async (req, res) => {
   }
 });
 
-// Get card by ID  <--- NEW ROUTE
+// Get card by ID
 app.get('/api/cards/:id', async (req, res) => {
   const cardId = req.params.id;
 
@@ -161,5 +161,28 @@ app.delete('/api/cards/:id', async (req, res) => {
   } catch (err) {
     console.error('Failed to delete card:', err);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// --- New route to delete an image from Cloudinary by public ID ---
+app.post('/api/images/delete', async (req, res) => {
+  const { publicId } = req.body;
+
+  if (!publicId) {
+    return res.status(400).json({ error: 'Missing publicId in request body' });
+  }
+
+  try {
+    const result = await cloudinary.uploader.destroy(publicId);
+
+    if (result.result !== 'ok' && result.result !== 'not found') {
+      // Treat 'not found' as success, otherwise error
+      return res.status(500).json({ error: 'Failed to delete image from Cloudinary', details: result });
+    }
+
+    res.json({ message: 'Image deleted successfully', result });
+  } catch (err) {
+    console.error('Cloudinary delete error:', err);
+    res.status(500).json({ error: 'Internal server error deleting image' });
   }
 });

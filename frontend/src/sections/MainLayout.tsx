@@ -67,25 +67,26 @@ function MainLayout() {
 
   function handleSave() {
     fetchCards();
-    toast.success(isNew ? 'Game added successfully!' : 'Changes saved!');
     closeEditSection();
   }
 
   function handleDelete(id: string) {
+    const toastId = toast.loading('Deleting game entry...');
+
     fetch(`${API_BASE_URL}/api/cards/${id}`, {
       method: 'DELETE',
     })
       .then(res => {
         if (res.ok) {
           setCards(prevCards => prevCards.filter(card => card._id !== id));
-          toast.success('Game deleted!');
+          toast.success('Game deleted!', { id: toastId });
         } else {
-          toast.error('Failed to delete game.');
+          toast.error('Failed to delete game.', { id: toastId });
         }
       })
       .catch(err => {
         console.error('Delete failed', err);
-        toast.error('An error occurred while deleting.');
+        toast.error('An error occurred while deleting.', { id: toastId });
       });
   }
 
@@ -132,7 +133,7 @@ function MainLayout() {
 
       <Toaster
         position="top-center"
-        toastOptions={{ duration: 4000 }}
+        toastOptions={{ duration: 3000 }}
         containerStyle={{ top: '29px' }}
       />
     </>

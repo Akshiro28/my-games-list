@@ -35,7 +35,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  const MAX_FILE_SIZE = 200 * 1024; // 200KB
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
   useEffect(() => {
     async function fetchGenres() {
@@ -107,15 +107,27 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     }
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+
       if (file.size > MAX_FILE_SIZE) {
-        toast.error("Image size must be 200KB or less.");
+        toast.error("Image size must be 10MB or less.");
         return;
       }
-      setSelectedFile(file);
-      setImagePreview(URL.createObjectURL(file));
+
+      try {
+        const resizedBlob = await resizeImageIfNeeded(file);
+        const previewUrl = URL.createObjectURL(resizedBlob);
+        setImagePreview(previewUrl);
+
+        // Convert resized Blob back to File so Cloudinary gets a proper filename
+        const resizedFile = new File([resizedBlob], file.name, { type: file.type });
+        setSelectedFile(resizedFile);
+      } catch (err) {
+        console.error("Image resizing failed", err);
+        toast.error("Failed to resize image");
+      }
     }
   }
 
@@ -129,20 +141,88 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     setDragOver(false);
   }
 
-  function handleDrop(e: React.DragEvent) {
+  const MAX_DIMENSION = 960;
+
+  function resizeImageIfNeeded(file: File): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+
+      img.onload = () => {
+        let { width, height } = img;
+
+        if (width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
+          // No resize needed
+          URL.revokeObjectURL(url);
+          return resolve(file);
+        }
+
+        const scale = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+        const newWidth = Math.round(width * scale);
+        const newHeight = Math.round(height * scale);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Canvas 2D context not supported'));
+
+        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob);
+          else reject(new Error('Image resizing failed'));
+        }, file.type || 'image/jpeg');
+        URL.revokeObjectURL(url);
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Image loading failed'));
+      };
+
+      img.src = url;
+    });
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.size > MAX_FILE_SIZE) {
-        toast.error("Image size must be 200KB or less.");
-        return;
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+
+    try {
+      const processedBlob = await resizeImageIfNeeded(file);
+      
+      // Preview
+      const previewUrl = URL.createObjectURL(processedBlob);
+      setImagePreview(previewUrl); // Optional preview state
+
+      // Upload to Cloudinary
+      const formData = new FormData();
+      formData.append('file', processedBlob);
+      formData.append('upload_preset', 'unsigned_preset');
+
+      const res = await fetch('https://api.cloudinary.com/v1_1/dthzdr1wz/image/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.secure_url && data.public_id) {
+        setFormData(prev =>
+          prev ? { ...prev, image: data.secure_url, cloudinaryPublicId: data.public_id } : null
+        );
+      } else {
+        throw new Error('Upload failed');
       }
-      setSelectedFile(file);
-      setImagePreview(URL.createObjectURL(file));
+    } catch (err) {
+      console.error(err);
+      toast.error('Image upload failed');
     }
-  }
+  };
 
   function handleClickDropzone() {
     inputRef.current?.click();
@@ -152,7 +232,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   async function uploadImageToCloudinary(file: File): Promise<{ url: string, publicId: string }> {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'unsigned_preset'); // replace with your preset
+    formData.append('upload_preset', 'unsigned_preset');
 
     const res = await fetch('https://api.cloudinary.com/v1_1/dthzdr1wz/image/upload', {
       method: 'POST',
@@ -189,20 +269,39 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       return;
     }
 
+    let toastId: string | undefined;
+
     try {
       setLoading(true);
+      toastId = toast.loading('Saving game...');
+
       let imageUrl = formData.image;
       let cloudinaryPublicId = formData.cloudinaryPublicId;
 
+      const isCreating = isNew || formData._id === undefined;
+      const safeScore = typeof formData.score === 'number' && !isNaN(formData.score) ? formData.score : 0;
+
+      // NEW: If replacing image on an existing card, delete old image from Cloudinary
+      if (!isCreating && selectedFile && cloudinaryPublicId) {
+        try {
+          await fetch(`${baseUrl}/api/images/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ publicId: cloudinaryPublicId }),
+          });
+          // Optionally, you can handle response and error here
+        } catch (err) {
+          console.error('Failed to delete old image from Cloudinary:', err);
+          // We can still proceed, but notify user optionally
+        }
+      }
+
+      // Upload new image if there's a selected file
       if (selectedFile) {
         const uploadResult = await uploadImageToCloudinary(selectedFile);
         imageUrl = uploadResult.url;
         cloudinaryPublicId = uploadResult.publicId;
       }
-
-      const isCreating = isNew || formData._id === undefined;
-
-      const safeScore = typeof formData.score === 'number' && !isNaN(formData.score) ? formData.score : 0;
 
       const response = await fetch(`${baseUrl}/api/cards${isCreating ? '' : '/' + formData._id}`, {
         method: isCreating ? 'POST' : 'PUT',
@@ -221,9 +320,11 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
       const updatedCard = await response.json();
       onSave(updatedCard);
+
+      toast.success(isNew ? 'Game saved successfully!' : 'Changes saved', { id: toastId });
     } catch (err) {
       console.error('Error saving card:', err);
-      toast.error('Failed to save the game. Please try again.');
+      toast.error('Failed to save the game. Please try again.', { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -278,7 +379,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           />
 
           <label className="block">
-            <span className="mb-2 block">Upload Image (200 KB max)</span>
+            <span className="mb-2 block">Upload Image (10MB max)</span>
             <div
               onClick={handleClickDropzone}
               onDragOver={handleDragOver}
