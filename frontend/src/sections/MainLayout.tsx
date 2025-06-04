@@ -93,7 +93,7 @@ function MainLayout() {
   return (
     <>
       <div
-        className={`container mx-auto mt-31 flex h-[calc(100vh-228px)] w-[calc(100%-32px)] overflow-hidden relative ${
+        className={`container mx-auto mt-31 flex h-[calc(100vh-236px)] w-[calc(100%-32px)] overflow-hidden relative ${
           editingCard ? 'editing' : ''
         }`}
       >

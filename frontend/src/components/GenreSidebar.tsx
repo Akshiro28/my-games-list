@@ -29,7 +29,11 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarP
       const scrollHeight = el.scrollHeight;
       const clientHeight = el.clientHeight;
 
-      if (scrollTop === 0) {
+      // If there's no vertical scroll (content fits), hide both gradients
+      if (scrollHeight <= clientHeight) {
+        setTopGradientHeight(0);
+        setBottomGradientHeight(0);
+      } else if (scrollTop === 0) {
         setTopGradientHeight(64);
         setBottomGradientHeight(0);
       } else if (scrollTop + clientHeight >= scrollHeight - 1) {

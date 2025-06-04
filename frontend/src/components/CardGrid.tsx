@@ -55,7 +55,11 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
       const scrollHeight = el.scrollHeight;
       const clientHeight = el.clientHeight;
 
-      if (scrollTop === 0) {
+      // If content does not overflow (no scroll), hide both gradients
+      if (scrollHeight <= clientHeight) {
+        setTopGradientHeight(0);
+        setBottomGradientHeight(0);
+      } else if (scrollTop === 0) {
         setTopGradientHeight(64);
         setBottomGradientHeight(0);
       } else if (scrollTop + clientHeight >= scrollHeight - 1) {
@@ -211,6 +215,13 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
+        {filteredCards.length === 0 ? (
+          <div className="relative z-1 flex items-center justify-center h-full w-full p-4 text-center text-[var(--thin-brighter)] rounded-md border-2 border-dashed border-[var(--thin)]">
+            No results found.
+          </div>
+        ) : (
+
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredCards.map((card, index) => {
             let textColor = '';
@@ -263,6 +274,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
             );
           })}
         </div>
+        )}
       </div>
 
       {cardToDelete && (
