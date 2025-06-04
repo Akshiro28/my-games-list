@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import type { Genre } from '../components/GenreSidebar';
 import type { Card } from '../components/CardGrid';
 
-const API_BASE_URL = 'https://your-api-domain.com/api'; // replace with your production API base URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 function MainLayout() {
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -18,34 +18,39 @@ function MainLayout() {
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [isNew, setIsNew] = useState(false);
 
+  // Fetch genres once on mount
   useEffect(() => {
     axios
-      .get(`${API_BASE_URL}/genres`)
+      .get(`${API_BASE_URL}/api/genres`)
       .then(res => setGenres(res.data))
       .catch(err => console.error('Failed to fetch genres:', err));
   }, []);
 
+  // Fetch all cards once on mount and when cards change
   const fetchCards = () => {
-    const url = selectedGenre
-      ? `${API_BASE_URL}/cards?genre=${selectedGenre}`
-      : `${API_BASE_URL}/cards`;
-
     axios
-      .get(url)
+      .get(`${API_BASE_URL}/api/cards`) // Always fetch all cards here
       .then(res => setCards(res.data))
       .catch(err => console.error('Failed to fetch cards:', err));
   };
 
   useEffect(() => {
     fetchCards();
-  }, [selectedGenre]);
+  }, []);
+
+  // Filter cards client-side based on selectedGenre
+  const filteredCards = selectedGenre
+    ? cards.filter(card => 
+        card.genres && card.genres.includes(selectedGenre)
+      )
+    : cards;
 
   function handleEditClick(card: Card) {
     if (card._id === '-1' || card._id === '_new') {
       setEditingCard(card);
       setIsNew(true);
     } else {
-      fetch(`${API_BASE_URL}/cards/${card._id}`)
+      fetch(`${API_BASE_URL}/api/cards/${card._id}`)
         .then(res => res.json())
         .then(data => {
           setEditingCard(data);
@@ -67,7 +72,7 @@ function MainLayout() {
   }
 
   function handleDelete(id: string) {
-    fetch(`${API_BASE_URL}/cards/${id}`, {
+    fetch(`${API_BASE_URL}/api/cards/${id}`, {
       method: 'DELETE',
     })
       .then(res => {
@@ -102,7 +107,7 @@ function MainLayout() {
         <div className="relative flex-1 overflow-hidden">
           <div className="card-grid absolute top-0 left-0 w-full h-full">
             <CardGrid
-              cards={cards}
+              cards={filteredCards} // Use filteredCards here
               onEditClick={handleEditClick}
               onDelete={handleDelete}
             />

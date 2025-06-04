@@ -1,201 +1,165 @@
-require('dotenv').config(); // Load env vars from .env
-
+require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
 const { MongoClient, ObjectId } = require('mongodb');
+const cors = require('cors');
+const cloudinary = require('cloudinary').v2;
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const port = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// Env vars
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.DB_NAME;
 
-if (!uri) {
-  console.error('ERROR: MONGODB_URI environment variable not set.');
-  process.exit(1);
-}
-
-if (!dbName) {
-  console.error('ERROR: DB_NAME environment variable not set.');
-  process.exit(1);
-}
-
-// MongoDB setup
-const client = new MongoClient(uri);
-
-let db;
-let cardsCollection;
-let genresCollection;
-
-async function connectDB() {
-  try {
-    await client.connect();
-    db = client.db(dbName);
-    cardsCollection = db.collection('cards');
-    genresCollection = db.collection('genres');
-    console.log(`✅ Connected to MongoDB database: ${dbName}`);
-  } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
-    process.exit(1);
-  }
-}
-
-// --- GENRES ROUTES ---
-
-// GET all genres
-app.get('/api/genres', async (req, res) => {
-  try {
-    const genres = await genresCollection.find({}).toArray();
-    res.json(genres);
-  } catch (err) {
-    console.error('Failed to get genres:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// --- CARDS ROUTES ---
+app.use(cors());
+app.use(express.json());
 
-// GET all cards (optionally filtered by genre)
+let db, cardsCollection, genresCollection;
+
+async function start() {
+  const client = new MongoClient(uri);
+  await client.connect();
+  db = client.db(dbName);
+  cardsCollection = db.collection('cards');
+  genresCollection = db.collection('genres');
+
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
+
+start().catch(console.error);
+
+// --- ROUTES ---
+
+// Get all cards
 app.get('/api/cards', async (req, res) => {
   try {
-    const genreId = req.query.genre;
-    const filter = genreId ? { genres: genreId } : {};
-    const cards = await cardsCollection.find(filter).toArray();
+    const cards = await cardsCollection.find().toArray();
     res.json(cards);
   } catch (err) {
-    console.error('Failed to get cards:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch cards' });
   }
 });
 
-// GET card by ID
+// Get card by ID  <--- NEW ROUTE
 app.get('/api/cards/:id', async (req, res) => {
   const cardId = req.params.id;
+
   if (!ObjectId.isValid(cardId)) {
     return res.status(400).json({ error: 'Invalid card ID' });
   }
 
   try {
     const card = await cardsCollection.findOne({ _id: new ObjectId(cardId) });
+
     if (!card) {
       return res.status(404).json({ error: 'Card not found' });
     }
+
     res.json(card);
   } catch (err) {
-    console.error('Failed to get card by ID:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch card' });
   }
 });
 
-// POST create new card
-app.post('/api/cards', async (req, res) => {
-  const { name, image, score, description, genres } = req.body;
-
-  if (!name || !image || !score || !description || !Array.isArray(genres)) {
-    return res.status(400).json({ error: 'Missing required fields or genres must be an array' });
-  }
-
+// Get all genres
+app.get('/api/genres', async (req, res) => {
   try {
-    const newCard = {
-      name,
-      image,
-      score,
-      description,
-      genres,
-      createdAt: new Date(),
-    };
-
-    const result = await cardsCollection.insertOne(newCard);
-    res.status(201).json({ message: 'Card created', id: result.insertedId });
+    const genres = await genresCollection.find().toArray();
+    res.json(genres);
   } catch (err) {
-    console.error('Failed to add card:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch genres' });
   }
 });
 
-// PUT update card
+// Create new card
+app.post('/api/cards', async (req, res) => {
+  try {
+    const card = req.body;
+
+    // Insert card with genres as array of genre IDs (strings)
+    const result = await cardsCollection.insertOne(card);
+    res.status(201).json({ _id: result.insertedId, ...card });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create card' });
+  }
+});
+
+// Update card by id
 app.put('/api/cards/:id', async (req, res) => {
   const cardId = req.params.id;
+
   if (!ObjectId.isValid(cardId)) {
     return res.status(400).json({ error: 'Invalid card ID' });
   }
 
-  const { name, image, score, description, genres } = req.body;
-  if (!name || !image || !score || !description || !Array.isArray(genres)) {
-    return res.status(400).json({ error: 'Missing required fields or genres must be an array' });
-  }
-
   try {
-    const updatedCard = {
-      name,
-      image,
-      score,
-      description,
-      genres,
-      updatedAt: new Date(),
-    };
+    const updatedCard = req.body;
 
-    const result = await cardsCollection.updateOne(
+    const result = await cardsCollection.findOneAndUpdate(
       { _id: new ObjectId(cardId) },
-      { $set: updatedCard }
+      { $set: updatedCard },
+      { returnDocument: 'after' }
     );
 
-    if (result.matchedCount === 0) {
+    if (!result.value) {
       return res.status(404).json({ error: 'Card not found' });
     }
 
-    res.json({ message: 'Card updated' });
+    res.json(result.value);
   } catch (err) {
-    console.error('Failed to update card:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update card' });
   }
 });
 
-// DELETE card
+// DELETE card by id (with Cloudinary image deletion)
 app.delete('/api/cards/:id', async (req, res) => {
   const cardId = req.params.id;
+
   if (!ObjectId.isValid(cardId)) {
     return res.status(400).json({ error: 'Invalid card ID' });
   }
 
   try {
+    // Find the card first
+    const card = await cardsCollection.findOne({ _id: new ObjectId(cardId) });
+
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+
+    // Delete image from Cloudinary if public_id exists
+    if (card.cloudinaryPublicId) {
+      try {
+        await cloudinary.uploader.destroy(card.cloudinaryPublicId);
+        console.log(`Deleted image from Cloudinary: ${card.cloudinaryPublicId}`);
+      } catch (cloudErr) {
+        console.error('Failed to delete image from Cloudinary:', cloudErr);
+        // Not throwing here so DB still deletes even if image deletion fails
+      }
+    }
+
+    // Delete the card from DB
     const result = await cardsCollection.deleteOne({ _id: new ObjectId(cardId) });
 
     if (result.deletedCount === 0) {
-      return res.status(404).json({ error: 'Card not found' });
+      return res.status(404).json({ error: 'Card not found or already deleted' });
     }
 
-    res.json({ message: 'Card deleted' });
+    res.json({ message: 'Card and image deleted successfully' });
   } catch (err) {
     console.error('Failed to delete card:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
-// Graceful shutdown (optional)
-process.on('SIGINT', async () => {
-  console.log('SIGINT received: closing MongoDB connection');
-  await client.close();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received: closing MongoDB connection');
-  await client.close();
-  process.exit(0);
-});
-
-// --- SERVER START ---
-async function startServer() {
-  await connectDB();
-  app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}/api`);
-  });
-}
-
-startServer();

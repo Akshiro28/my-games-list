@@ -6,6 +6,7 @@ type Card = {
   name: string;
   description: string;
   image: string;
+  cloudinaryPublicId?: string;
   score: number;
   genres?: string[];
 };
@@ -29,6 +30,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [loading, setLoading] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -55,6 +57,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         name: card.name || '',
         description: card.description || '',
         image: card.image || '',
+        cloudinaryPublicId: card.cloudinaryPublicId,
         score: card.score || 0,
         genres: card.genres || [],
       });
@@ -66,6 +69,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         name: '',
         description: '',
         image: '',
+        cloudinaryPublicId: undefined,
         score: 0,
         genres: [],
       });
@@ -144,7 +148,8 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     inputRef.current?.click();
   }
 
-  async function uploadImageToCloudinary(file: File): Promise<string> {
+  // Upload image and return object with url and public_id
+  async function uploadImageToCloudinary(file: File): Promise<{ url: string, publicId: string }> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', 'unsigned_preset'); // replace with your preset
@@ -156,8 +161,8 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
     const data = await res.json();
 
-    if (data.secure_url) {
-      return data.secure_url;
+    if (data.secure_url && data.public_id) {
+      return { url: data.secure_url, publicId: data.public_id };
     } else {
       throw new Error('Image upload failed');
     }
@@ -165,7 +170,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!formData) return;
+    if (!formData || loading) return;
 
     if (!formData.name.trim()) {
       toast.error('Title cannot be empty');
@@ -185,10 +190,14 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     }
 
     try {
+      setLoading(true);
       let imageUrl = formData.image;
+      let cloudinaryPublicId = formData.cloudinaryPublicId;
 
       if (selectedFile) {
-        imageUrl = await uploadImageToCloudinary(selectedFile);
+        const uploadResult = await uploadImageToCloudinary(selectedFile);
+        imageUrl = uploadResult.url;
+        cloudinaryPublicId = uploadResult.publicId;
       }
 
       const isCreating = isNew || formData._id === undefined;
@@ -202,6 +211,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           name: formData.name,
           description: formData.description,
           image: imageUrl,
+          cloudinaryPublicId: cloudinaryPublicId,
           score: safeScore,
           genres: selectedGenres,
         }),
@@ -214,6 +224,8 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     } catch (err) {
       console.error('Error saving card:', err);
       toast.error('Failed to save the game. Please try again.');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -313,43 +325,43 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
             />
           </label>
 
-          <div>
-            <div className="mb-1 font-semibold">Genres (multiple select)</div>
-
-            <div className="flex flex-wrap gap-2">
-              {availableGenres.map((genre) => {
-                const isSelected = selectedGenres.includes(genre._id);
-                return (
-                  <button
-                    key={genre._id}
-                    type="button"
-                    onClick={() => {
-                      if (isSelected) {
-                        setSelectedGenres(selectedGenres.filter((id) => id !== genre._id));
-                      } else {
-                        setSelectedGenres([...selectedGenres, genre._id]);
-                      }
-                    }}
-                    className={`cursor-pointer rounded-md py-2 px-4
-                      ${
-                        isSelected
-                          ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]'
-                          : 'bg-[var(--thin)] hover:bg-[var(--thin-brighter)]'
-                      }`}
-                    aria-pressed={isSelected}
-                  >
-                    {genre.name}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="flex flex-wrap gap-2">
+            {availableGenres.map((genre) => {
+              const isSelected = selectedGenres.includes(genre._id);
+              return (
+                <button
+                  key={genre._id}
+                  type="button"
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedGenres(selectedGenres.filter((id) => id !== genre._id));
+                    } else {
+                      setSelectedGenres([...selectedGenres, genre._id]);
+                    }
+                  }}
+                  className={`cursor-pointer rounded-md py-2 px-4
+                    ${
+                      isSelected
+                        ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]'
+                        : 'bg-[var(--thin)] hover:bg-[var(--thin-brighter)]'
+                    }
+                  `}
+                  aria-pressed={isSelected}
+                >
+                  {genre.name}
+                </button>
+              );
+            })}
           </div>
 
           <button
             type="submit"
-            className="bg-[var(--thin)] hover:bg-[var(--thin-brighter)] text-white py-2 rounded-md cursor-pointer"
+            disabled={loading}
+            className={`bg-[var(--thin)] py-3 rounded-md text-white font-semibold cursor-pointer
+              hover:bg-[var(--thin-brighter)] ${loading ? 'opacity-50 cursor-not-allowed' : ''}
+            `}
           >
-            {isNew ? 'Add Game' : 'Save Changes'}
+            {loading ? (isNew ? 'Adding...' : 'Saving...') : (isNew ? 'Add Game' : 'Save Changes')}
           </button>
         </form>
       </div>
