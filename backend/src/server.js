@@ -45,8 +45,6 @@ async function connectDB() {
   }
 }
 
-connectDB();
-
 // --- GENRES ROUTES ---
 
 // GET all genres
@@ -179,7 +177,25 @@ app.delete('/api/cards/:id', async (req, res) => {
   }
 });
 
-// --- SERVER START ---
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}/api`);
+// Graceful shutdown (optional)
+process.on('SIGINT', async () => {
+  console.log('SIGINT received: closing MongoDB connection');
+  await client.close();
+  process.exit(0);
 });
+
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received: closing MongoDB connection');
+  await client.close();
+  process.exit(0);
+});
+
+// --- SERVER START ---
+async function startServer() {
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}/api`);
+  });
+}
+
+startServer();
