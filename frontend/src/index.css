@@ -29,8 +29,15 @@
   --thin-brighter-brighter-brighter: #545E7F;
   --text-thin: #646A7A;
   --text-thin-brighter: #7C8293;
-  --green: #B9D6CA;
-  --green15: #B9D6CA26;
+
+  --diamond: #86C8F9;
+  --diamond15: #86C8F926;
+  --green: #A8D5B2;
+  --green15: #A8D5B226;
+  --yellow: #F6D860;
+  --yellow15: #F6D86026;
+  --red: #FB5A5A;
+  --red15: #FB5A5A26;
 }
 
 body {

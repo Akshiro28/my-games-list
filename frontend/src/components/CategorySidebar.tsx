@@ -68,7 +68,7 @@ function CategorySidebar({ categories, selectedCategory, setSelectedCategory, on
             placeholder="Search categories..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-3 py-2 mb-6 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)]"
+            className="w-full px-3 py-2 mb-6 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder:italic"
           />
 
           <div className="flex items-center justify-center border-2 border-[var(--thin)] h-[44px] px-3 ms-2 rounded-md text-[var(--thin-brighter)] hover:text-[var(--text-thin)] hover:border-[var(--thin-brighter)] cursor-pointer"
@@ -85,7 +85,7 @@ function CategorySidebar({ categories, selectedCategory, setSelectedCategory, on
         style={{ maxHeight: 'calc(100% - 130px)' }}
       >
         {filteredCategories.length === 0 ? (
-          <div className="w-full h-full flex items-center justify-center text-[var(--thin-brighter)] text-center px-4 border-2 border-dashed border-[var(--thin)] rounded-md">
+          <div className="w-full h-full flex items-center justify-center text-[var(--thin-brighter)] text-center px-4 border-2 border-dashed border-[var(--thin)] rounded-md italic">
             No categories found.
           </div>
         ) : (

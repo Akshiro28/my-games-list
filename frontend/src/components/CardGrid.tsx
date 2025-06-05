@@ -168,7 +168,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                   placeholder="Search games..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
+                  className="w-full px-3 py-2 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] placeholder:italic"
                 />
               </div>
             </div>
@@ -178,7 +178,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                 onClick={() => setMode(prev => (prev === 'edit' ? null : 'edit'))}
                 className={`px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer
                   ${mode === 'edit'
-                    ? 'border-[var(--thin-brighter)] text-[var(--text-thin)] bg-[var(--thin)] hover:border-[var(--thin-brighter-brighter)] hover:text-[var(--text-thin-brighter)]'
+                    ? 'border-blue-600 text-blue-600 bg-[#1B2541] hover:border-blue-500 hover:text-blue-500'
                     : 'border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]'
                   }`}
               >
@@ -203,7 +203,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                 onClick={() => setMode(prev => (prev === 'delete' ? null : 'delete'))}
                 className={`px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer
                   ${mode === 'delete'
-                    ? 'border-[var(--thin-brighter)] text-[var(--text-thin)] bg-[var(--thin)] hover:border-[var(--thin-brighter-brighter)] hover:text-[var(--text-thin-brighter)]'
+                    ? 'border-red-600 text-red-600 bg-[#531621] hover:border-red-500 hover:text-red-500'
                     : 'border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]'
                   }`}
               >
@@ -216,7 +216,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
 
       <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
         {filteredCards.length === 0 ? (
-          <div className="relative z-1 flex items-center justify-center h-full w-full p-4 text-center text-[var(--thin-brighter)] rounded-md border-2 border-dashed border-[var(--thin)]">
+          <div className="relative z-1 flex items-center justify-center h-full w-full p-4 text-center text-[var(--thin-brighter)] rounded-md border-2 border-dashed border-[var(--thin)] italic">
             No games found.
           </div>
         ) : (
@@ -226,16 +226,21 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
           {filteredCards.map((card, index) => {
             let textColor = '';
             let bgColor = '';
+            let borderColor = '';
 
-            if (card.score >= 80) {
+            if (card.score >= 95) {
+              textColor = 'text-[var(--diamond)]';
+              bgColor = 'bg-[var(--diamond15)]';
+              borderColor = 'border-2 border-[var(--diamond)] shadow-[0_0_16px_7px_var(--diamond15)]'
+            } else if (card.score >= 80) {
               textColor = 'text-[var(--green)]';
               bgColor = 'bg-[var(--green15)]';
             } else if (card.score >= 50) {
-              textColor = 'text-yellow-700';
-              bgColor = 'bg-yellow-200';
+              textColor = 'text-[var(--yellow)]';
+              bgColor = 'bg-[var(--yellow15)]';
             } else {
-              textColor = 'text-red-700';
-              bgColor = 'bg-red-200';
+              textColor = 'text-[var(--red)]';
+              bgColor = 'bg-[var(--red15)]';
             }
 
             return (
@@ -263,7 +268,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                   <div className="px-5 pt-4 pb-5">
                     <div className="flex w-full items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold">{card.name}</h3>
-                      <span className={`px-2 rounded text-sm font-medium w-fit h-fit ${textColor} ${bgColor}`}>
+                      <span className={`px-2 rounded text-sm font-medium w-fit h-fit ${textColor} ${bgColor} ${borderColor}`}>
                         {card.score}
                       </span>
                     </div>

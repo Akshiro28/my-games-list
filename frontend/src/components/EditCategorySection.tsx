@@ -205,7 +205,7 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
               }}
               maxLength={26}
               placeholder="Enter category name"
-              className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
+              className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] placeholder:italic"
             />
           </label>
 
@@ -227,9 +227,9 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
         </h3>
 
         {loadingCategories ? (
-          <p>Loading categories...</p>
+          <p className="italic text-[var(--thin-brighter)]">Loading categories...</p>
         ) : categories.length === 0 ? (
-          <p>No categories found.</p>
+          <p className="italic text-[var(--thin-brighter)]">No categories yet. Add one to begin categorizing your games.</p>
         ) : (
           <ul className="flex flex-col gap-3 w-full">
             {categories.map((cat) => (

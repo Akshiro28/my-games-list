@@ -353,8 +353,8 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Enter game title"
-              className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
+              placeholder="Enter game title..."
+              className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] placeholder:italic"
             />
           </label>
 
@@ -365,8 +365,8 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
               value={formData.description}
               onChange={handleChange}
               rows={4}
-              placeholder="Enter game description"
-              className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)]"
+              placeholder="Enter game description..."
+              className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] placeholder:italic"
             />
           </label>
 
@@ -406,7 +406,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                   className="max-h-48 max-w-full object-contain rounded"
                 />
               ) : (
-                <p className="text-[var(--thin-brighter)] group-hover:text-[var(--text-thin)]">
+                <p className="text-[var(--thin-brighter)] group-hover:text-[var(--text-thin)] italic">
                   Click or drag & drop an image here
                 </p>
               )}
@@ -442,34 +442,39 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
           <label>
             <span className="mb-2 block">Categories (multiple select)</span>
-            <div className="flex flex-wrap gap-2">
-              {availableCategories.map((category) => {
-                const isSelected = selectedCategories.includes(category._id);
-                return (
-                  <button
-                    key={category._id}
-                    type="button"
-                    onClick={() => {
-                      if (isSelected) {
-                        setSelectedCategories(selectedCategories.filter((id) => id !== category._id));
-                      } else {
-                        setSelectedCategories([...selectedCategories, category._id]);
-                      }
-                    }}
-                    className={`cursor-pointer rounded-md py-2 px-4
-                      ${
-                        isSelected
-                          ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]'
-                          : 'bg-[var(--thin)] hover:bg-[var(--thin-brighter)]'
-                      }
-                    `}
-                    aria-pressed={isSelected}
-                  >
-                    {category.name}
-                  </button>
-                );
-              })}
-            </div>
+
+            {availableCategories.length === 0 ? (
+              <p className="italic text-[var(--thin-brighter)]">No categories yet. Add one to begin categorizing your games.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {availableCategories.map((category) => {
+                  const isSelected = selectedCategories.includes(category._id);
+                  return (
+                    <button
+                      key={category._id}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedCategories(selectedCategories.filter((id) => id !== category._id));
+                        } else {
+                          setSelectedCategories([...selectedCategories, category._id]);
+                        }
+                      }}
+                      className={`cursor-pointer rounded-md py-2 px-4
+                        ${
+                          isSelected
+                            ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]'
+                            : 'bg-[var(--thin)] hover:bg-[var(--thin-brighter)]'
+                        }
+                      `}
+                      aria-pressed={isSelected}
+                    >
+                      {category.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </label>
 
           <button
