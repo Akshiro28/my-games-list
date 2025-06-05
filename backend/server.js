@@ -97,29 +97,57 @@ app.post('/api/cards', async (req, res) => {
 
 // Update card by id
 app.put('/api/cards/:id', async (req, res) => {
-  const cardId = req.params.id;
+  const { id } = req.params;
+  const updatedData = req.body;
 
-  if (!ObjectId.isValid(cardId)) {
+  if (!ObjectId.isValid(id)) {
     return res.status(400).json({ error: 'Invalid card ID' });
   }
 
   try {
-    const updatedCard = req.body;
-
-    const result = await cardsCollection.findOneAndUpdate(
-      { _id: new ObjectId(cardId) },
-      { $set: updatedCard },
-      { returnDocument: 'after' }
+    const result = await cardsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updatedData }
     );
 
-    if (!result.value) {
+    if (result.matchedCount === 0) {
       return res.status(404).json({ error: 'Card not found' });
     }
 
-    res.json(result.value);
+    const updatedCard = await cardsCollection.findOne({ _id: new ObjectId(id) });
+
+    res.json(updatedCard);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update card' });
+  }
+});
+
+// Update category (genre) by id
+app.put('/api/genres/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid category ID' });
+  }
+
+  try {
+    const result = await genresCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { name } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    const updatedCategory = await genresCollection.findOne({ _id: new ObjectId(id) });
+
+    res.json(updatedCategory);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to update category' });
   }
 });
 
@@ -161,6 +189,28 @@ app.delete('/api/cards/:id', async (req, res) => {
   } catch (err) {
     console.error('Failed to delete card:', err);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// DELETE category (genre) by id
+app.delete('/api/genres/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid category ID' });
+  }
+
+  try {
+    const result = await genresCollection.deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Category not found or already deleted' });
+    }
+
+    res.json({ message: 'Category deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete category' });
   }
 });
 

@@ -265,7 +265,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       return;
     }
     if (!formData.image && !selectedFile) {
-      toast.error('Please upload an image');
+      toast.error('Image cannot be empty');
       return;
     }
 
@@ -338,14 +338,14 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           className="mb-6 bg-[var(--thin)] py-2 px-4 rounded-md cursor-pointer hover:bg-[var(--thin-brighter)]"
           aria-label="Go back to games list"
         >
-          &larr; Cancel
+          &larr; Go back
         </button>
 
         <h2 id="edit-game-title" className="text-3xl font-semibold mb-6">
           {isNew ? 'Add New Game' : 'Edit Game'}
         </h2>
 
-        <form onSubmit={handleSubmit} className="w-200 max-w-full flex flex-col gap-6">
+        <form onSubmit={handleSubmit} className="w-160 max-w-full flex flex-col gap-6">
           <label className="block">
             <span className="mb-2 block">Title (100 characters max)</span>
             <input
@@ -406,7 +406,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                   className="max-h-48 max-w-full object-contain rounded"
                 />
               ) : (
-                <p className="text-[var(--thin-brighter)] group-hover:text-[var(--thin-brighter-brighter)]">
+                <p className="text-[var(--thin-brighter)] group-hover:text-[var(--text-thin)]">
                   Click or drag & drop an image here
                 </p>
               )}
@@ -419,50 +419,67 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
               type="number"
               name="score"
               value={formData.score}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+
+                if (value > 100) {
+                  toast.error('Score cannot exceed 100');
+                  return;
+                }
+
+                if (value < 0) {
+                  toast.error('Score cannot be below 0');
+                  return;
+                }
+
+                handleChange(e); // only call if within valid range
+              }}
               min={0}
               max={100}
-              onChange={handleChange}
               className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)]"
             />
           </label>
 
-          <div className="flex flex-wrap gap-2">
-            {availableGenres.map((genre) => {
-              const isSelected = selectedGenres.includes(genre._id);
-              return (
-                <button
-                  key={genre._id}
-                  type="button"
-                  onClick={() => {
-                    if (isSelected) {
-                      setSelectedGenres(selectedGenres.filter((id) => id !== genre._id));
-                    } else {
-                      setSelectedGenres([...selectedGenres, genre._id]);
-                    }
-                  }}
-                  className={`cursor-pointer rounded-md py-2 px-4
-                    ${
-                      isSelected
-                        ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]'
-                        : 'bg-[var(--thin)] hover:bg-[var(--thin-brighter)]'
-                    }
-                  `}
-                  aria-pressed={isSelected}
-                >
-                  {genre.name}
-                </button>
-              );
-            })}
-          </div>
+          <label>
+            <span className="mb-2 block">Categories (multiple select)</span>
+            <div className="flex flex-wrap gap-2">
+              {availableGenres.map((genre) => {
+                const isSelected = selectedGenres.includes(genre._id);
+                return (
+                  <button
+                    key={genre._id}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedGenres(selectedGenres.filter((id) => id !== genre._id));
+                      } else {
+                        setSelectedGenres([...selectedGenres, genre._id]);
+                      }
+                    }}
+                    className={`cursor-pointer rounded-md py-2 px-4
+                      ${
+                        isSelected
+                          ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]'
+                          : 'bg-[var(--thin)] hover:bg-[var(--thin-brighter)]'
+                      }
+                    `}
+                    aria-pressed={isSelected}
+                  >
+                    {genre.name}
+                  </button>
+                );
+              })}
+            </div>
+          </label>
 
           <button
             type="submit"
             disabled={loading}
-            className={`bg-[var(--thin)] py-3 rounded-md text-white font-semibold cursor-pointer
-              hover:bg-[var(--thin-brighter)] ${loading ? 'opacity-50 cursor-not-allowed' : ''}
+            className={`bg-blue-600 py-3 rounded-md text-white font-semibold cursor-pointer
+              hover:bg-blue-500 ${loading ? 'opacity-50 cursor-not-allowed' : ''}
             `}
           >
-            {loading ? (isNew ? 'Adding...' : 'Saving...') : (isNew ? 'Add Game' : 'Save Changes')}
+            {loading ? (isNew ? 'Adding...' : 'Saving...') : (isNew ? 'Add game' : 'Save changes')}
           </button>
         </form>
       </div>

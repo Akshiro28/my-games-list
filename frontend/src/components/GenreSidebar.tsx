@@ -9,9 +9,10 @@ type GenreSidebarProps = {
   genres: Genre[];
   selectedGenre: string | null;
   setSelectedGenre: (genreId: string | null) => void;
+  onAddCategoryClick: () => void;
 };
 
-function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarProps) {
+function GenreSidebar({ genres, selectedGenre, setSelectedGenre, onAddCategoryClick }: GenreSidebarProps) {
   const [search, setSearch] = useState('');
   const [topGradientHeight, setTopGradientHeight] = useState<number>(0);
   const [bottomGradientHeight, setBottomGradientHeight] = useState<number>(0);
@@ -57,17 +58,25 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre }: GenreSidebarP
   }, [filteredGenres]);
 
   return (
-    <aside className="min-w-64 flex flex-col h-full relative">
+    <aside className="max-w-64 flex flex-col h-full relative">
       <div className="sticky top-0 bg-[var(--bg)] z-1">
         <h2 className="text-4xl font-semibold mb-5">Genres</h2>
 
-        <input
-          type="text"
-          placeholder="Search genres..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-3 py-2 mb-6 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)]"
-        />
+        <div className="flex">
+          <input
+            type="text"
+            placeholder="Search genres..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-3 py-2 mb-6 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)]"
+          />
+
+          <div className="flex items-center justify-center border-2 border-[var(--thin)] h-[44px] px-3 ms-2 rounded-md text-[var(--thin-brighter)] hover:text-[var(--text-thin)] hover:border-[var(--thin-brighter)] cursor-pointer"
+            onClick={onAddCategoryClick}
+          > 
+            Edit
+          </div>
+        </div>
       </div>
 
       <ul

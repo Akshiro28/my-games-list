@@ -217,7 +217,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
       <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
         {filteredCards.length === 0 ? (
           <div className="relative z-1 flex items-center justify-center h-full w-full p-4 text-center text-[var(--thin-brighter)] rounded-md border-2 border-dashed border-[var(--thin)]">
-            No results found.
+            No games found.
           </div>
         ) : (
 
@@ -281,7 +281,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
         <div className="fixed inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.32)] backdrop-blur-xs z-9">
           <div className="bg-[var(--background)] px-8 py-6 rounded-lg shadow-md text-center large-shadow-darker border-2 border-[var(--thin-brighter)]">
             <p className="text-lg mb-4">
-              Are you sure you want to delete <strong>{cardToDelete.name}</strong>?
+              Are you sure you want to delete "<strong>{cardToDelete.name}</strong>"?
             </p>
             <div className="flex justify-center gap-4">
               <button

@@ -14,6 +14,14 @@
   transition: all 0.8s ease;
 }
 
-.editing .card-grid, .editing .edit-section {
+.editing .edit-section {
+  transform: translateY(-100%);
+}
+
+.main-layout-container.editing .main-layout {
+  opacity: 0;
+}
+
+.category-section.editing {
   transform: translateY(-100%);
 }
