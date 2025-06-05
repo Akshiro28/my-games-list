@@ -60,12 +60,12 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre, onAddCategoryCl
   return (
     <aside className="max-w-64 flex flex-col h-full relative">
       <div className="sticky top-0 bg-[var(--bg)] z-1">
-        <h2 className="text-4xl font-semibold mb-5">Genres</h2>
+        <h2 className="text-4xl font-semibold mb-5">Categories</h2>
 
         <div className="flex">
           <input
             type="text"
-            placeholder="Search genres..."
+            placeholder="Search categories..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full px-3 py-2 mb-6 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)]"
@@ -84,29 +84,37 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre, onAddCategoryCl
         className="space-y-1 overflow-y-auto flex-1 relative"
         style={{ maxHeight: 'calc(100% - 130px)' }}
       >
-        <li>
-          <button
-            onClick={() => setSelectedGenre(null)}
-            className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] cursor-pointer ${
-              !selectedGenre ? 'bg-[var(--thin)]' : ''
-            }`}
-          >
-            All
-          </button>
-        </li>
+        {filteredGenres.length === 0 ? (
+          <div className="w-full h-full flex items-center justify-center text-[var(--thin-brighter)] text-center px-4 border-2 border-dashed border-[var(--thin)] rounded-md">
+            No categories found.
+          </div>
+        ) : (
+          <>
+            <li>
+              <button
+                onClick={() => setSelectedGenre(null)}
+                className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] cursor-pointer ${
+                  !selectedGenre ? 'bg-[var(--thin)]' : ''
+                }`}
+              >
+                All
+              </button>
+            </li>
 
-        {filteredGenres.map((genre) => (
-          <li key={genre._id}>
-            <button
-              onClick={() => setSelectedGenre(genre._id)}
-              className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] cursor-pointer ${
-                selectedGenre === genre._id ? 'bg-[var(--thin)]' : ''
-              }`}
-            >
-              {genre.name}
-            </button>
-          </li>
-        ))}
+            {filteredGenres.map((genre) => (
+              <li key={genre._id}>
+                <button
+                  onClick={() => setSelectedGenre(genre._id)}
+                  className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] cursor-pointer ${
+                    selectedGenre === genre._id ? 'bg-[var(--thin)]' : ''
+                  }`}
+                >
+                  {genre.name}
+                </button>
+              </li>
+            ))}
+          </>
+        )}
       </ul>
 
       <div

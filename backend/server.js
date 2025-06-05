@@ -33,7 +33,7 @@ async function start() {
   });
 }
 
-start().catch(console.error);
+start().catch(console.error());
 
 // --- ROUTES ---
 
@@ -85,8 +85,6 @@ app.get('/api/genres', async (req, res) => {
 app.post('/api/cards', async (req, res) => {
   try {
     const card = req.body;
-
-    // Insert card with genres as array of genre IDs (strings)
     const result = await cardsCollection.insertOne(card);
     res.status(201).json({ _id: result.insertedId, ...card });
   } catch (err) {
@@ -95,7 +93,24 @@ app.post('/api/cards', async (req, res) => {
   }
 });
 
-// Update card by id
+// Create new genre
+app.post('/api/genres', async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const result = await genresCollection.insertOne({ name: name.trim() });
+    res.status(201).json({ _id: result.insertedId, name: name.trim() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create genre' });
+  }
+});
+
+// Update card
 app.put('/api/cards/:id', async (req, res) => {
   const { id } = req.params;
   const updatedData = req.body;
@@ -115,7 +130,6 @@ app.put('/api/cards/:id', async (req, res) => {
     }
 
     const updatedCard = await cardsCollection.findOne({ _id: new ObjectId(id) });
-
     res.json(updatedCard);
   } catch (err) {
     console.error(err);
@@ -123,7 +137,7 @@ app.put('/api/cards/:id', async (req, res) => {
   }
 });
 
-// Update category (genre) by id
+// Update genre
 app.put('/api/genres/:id', async (req, res) => {
   const { id } = req.params;
   const { name } = req.body;
@@ -143,7 +157,6 @@ app.put('/api/genres/:id', async (req, res) => {
     }
 
     const updatedCategory = await genresCollection.findOne({ _id: new ObjectId(id) });
-
     res.json(updatedCategory);
   } catch (err) {
     console.error(err);
@@ -151,7 +164,7 @@ app.put('/api/genres/:id', async (req, res) => {
   }
 });
 
-// DELETE card by id (with Cloudinary image deletion)
+// Delete card
 app.delete('/api/cards/:id', async (req, res) => {
   const cardId = req.params.id;
 
@@ -160,25 +173,21 @@ app.delete('/api/cards/:id', async (req, res) => {
   }
 
   try {
-    // Find the card first
     const card = await cardsCollection.findOne({ _id: new ObjectId(cardId) });
 
     if (!card) {
       return res.status(404).json({ error: 'Card not found' });
     }
 
-    // Delete image from Cloudinary if public_id exists
     if (card.cloudinaryPublicId) {
       try {
         await cloudinary.uploader.destroy(card.cloudinaryPublicId);
         console.log(`Deleted image from Cloudinary: ${card.cloudinaryPublicId}`);
       } catch (cloudErr) {
         console.error('Failed to delete image from Cloudinary:', cloudErr);
-        // Not throwing here so DB still deletes even if image deletion fails
       }
     }
 
-    // Delete the card from DB
     const result = await cardsCollection.deleteOne({ _id: new ObjectId(cardId) });
 
     if (result.deletedCount === 0) {
@@ -192,29 +201,36 @@ app.delete('/api/cards/:id', async (req, res) => {
   }
 });
 
-// DELETE category (genre) by id
+// Delete genre (UPDATED to also clean up cards referencing this genre)
 app.delete('/api/genres/:id', async (req, res) => {
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
-    return res.status(400).json({ error: 'Invalid category ID' });
+    return res.status(400).json({ error: 'Invalid genre ID' });
   }
 
   try {
+    // Delete genre document
     const result = await genresCollection.deleteOne({ _id: new ObjectId(id) });
 
     if (result.deletedCount === 0) {
-      return res.status(404).json({ error: 'Category not found or already deleted' });
+      return res.status(404).json({ error: 'Genre not found' });
     }
 
-    res.json({ message: 'Category deleted successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to delete category' });
+    // Remove the deleted genre's ID from all cards referencing it
+    await cardsCollection.updateMany(
+      { genres: new ObjectId(id) },
+      { $pull: { genres: new ObjectId(id) } }
+    );
+
+    res.status(200).json({ message: 'Genre deleted and references cleaned up' });
+  } catch (error) {
+    console.error('Delete genre error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// --- New route to delete an image from Cloudinary by public ID ---
+// Delete image from Cloudinary
 app.post('/api/images/delete', async (req, res) => {
   const { publicId } = req.body;
 
@@ -226,7 +242,6 @@ app.post('/api/images/delete', async (req, res) => {
     const result = await cloudinary.uploader.destroy(publicId);
 
     if (result.result !== 'ok' && result.result !== 'not found') {
-      // Treat 'not found' as success, otherwise error
       return res.status(500).json({ error: 'Failed to delete image from Cloudinary', details: result });
     }
 

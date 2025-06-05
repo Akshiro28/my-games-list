@@ -9,15 +9,17 @@ type Category = {
 
 type EditCategorySectionProps = {
   onClose: () => void;
-  onSave: (newCategory: Category) => void;
+  onSave: () => void;
+  onDeleteGenre: (id: string) => void;
 };
 
-function EditCategorySection({ onClose, onSave }: EditCategorySectionProps) {
+function EditCategorySection({ onClose, onSave, onDeleteGenre }: EditCategorySectionProps) {
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<Category | null>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -46,8 +48,11 @@ function EditCategorySection({ onClose, onSave }: EditCategorySectionProps) {
 
   useEffect(() => {
     if (editingId && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select(); // (optional) selects the whole text for easier editing
+      const input = inputRef.current;
+      input.focus();
+      // Set cursor position to the end of the current input value
+      const length = input.value.length;
+      input.setSelectionRange(length, length);
     }
   }, [editingId]);
 
@@ -78,7 +83,10 @@ function EditCategorySection({ onClose, onSave }: EditCategorySectionProps) {
       toast.success('Category added', { id: toastId });
       setCategories((prev) => [...prev, newCategory]);
       setName('');
-      onSave(newCategory);
+
+      // Call onSave prop to notify parent to refresh genres list
+      onSave();
+
     } catch (err) {
       console.error(err);
       toast.error('Failed to add category', { id: toastId });
@@ -91,25 +99,21 @@ function EditCategorySection({ onClose, onSave }: EditCategorySectionProps) {
     setPendingDeleteCategory(cat);
   }
 
+  // In EditCategorySection.tsx
   async function handleDeleteConfirmed() {
-    if (!pendingDeleteId) return;
+    if (deleting || !pendingDeleteCategory) return;
+    setDeleting(true);
 
-    const toastId = toast.loading('Deleting category...');
+    const id = pendingDeleteCategory._id;
+
     try {
-      const res = await fetch(`${baseUrl}/api/genres/${pendingDeleteId}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) throw new Error('Failed to delete category');
-
-      setCategories((prev) =>
-        prev.filter((cat) => cat._id !== pendingDeleteId)
-      );
-      toast.success('Category deleted', { id: toastId });
-      setPendingDeleteId(null);
+      await onDeleteGenre(id);  // Parent deletes genre on server
+      setCategories((prev) => prev.filter((cat) => cat._id !== id)); // Remove locally
+      setPendingDeleteCategory(null);
     } catch (err) {
       console.error(err);
-      toast.error('Failed to delete category', { id: toastId });
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -149,6 +153,10 @@ function EditCategorySection({ onClose, onSave }: EditCategorySectionProps) {
       );
       toast.success('Category updated', { id: toastId });
       cancelEditing();
+
+      // Call onSave prop to notify parent to refresh genres list
+      onSave();
+
     } catch (err) {
       console.error(err);
       toast.error('Failed to update category', { id: toastId });

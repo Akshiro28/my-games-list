@@ -20,6 +20,14 @@ function MainLayout() {
   const [isNew, setIsNew] = useState(false);
   const [editingCategory, setEditingCategory] = useState(false);
 
+  // Reusable function to reload genres from server and update state
+  function refreshGenres() {
+    axios
+      .get(`${baseUrl}/api/genres`)
+      .then(res => setGenres(res.data))
+      .catch(err => console.error('Failed to fetch genres:', err));
+  }
+
   function openCategoryEditor() {
     setEditingCategory(true);
   }
@@ -28,22 +36,41 @@ function MainLayout() {
     setEditingCategory(false);
   }
 
-  function handleCategorySave() {
-    // Reload genres including the newly added one
-    axios
-      .get(`${baseUrl}/api/genres`)
-      .then(res => setGenres(res.data))
-      .catch(err => console.error('Failed to fetch genres:', err));
+  // Reload genres after add or update
+  function handleCategorySave(closeAfterSave: boolean = true) {
+    refreshGenres();
+    if (closeAfterSave) {
+      setEditingCategory(false);
+    }
+  }
 
-    setEditingCategory(false);
+  // Delete a genre and update genres state by reloading fresh from server
+  async function handleDeleteGenre(id: string) {
+    const toastId = toast.loading('Deleting genre...');
+
+    try {
+      const res = await axios.delete(`${baseUrl}/api/genres/${id}`);
+
+      if (res.status === 200) {
+        refreshGenres();
+        toast.success('Genre deleted!', { id: toastId });
+      } else {
+        toast.error('Failed to delete genre.', { id: toastId });
+      }
+    } catch (err: any) {
+      console.error('Error deleting genre:', err);
+
+      if (err.response?.status === 404) {
+        toast.error('Genre not found on server.', { id: toastId });
+      } else {
+        toast.error('Error deleting genre.', { id: toastId });
+      }
+    }
   }
 
   // Fetch genres once on mount
   useEffect(() => {
-    axios
-      .get(`${baseUrl}/api/genres`)
-      .then(res => setGenres(res.data))
-      .catch(err => console.error('Failed to fetch genres:', err));
+    refreshGenres();
   }, []);
 
   // Fetch all cards once on mount
@@ -164,7 +191,8 @@ function MainLayout() {
             {editingCategory && (
               <EditCategorySection
                 onClose={closeCategoryEditor}
-                onSave={handleCategorySave}
+                onSave={() => handleCategorySave(false)}  // false = don't close after save
+                onDeleteGenre={handleDeleteGenre}
               />
             )}
           </div>
