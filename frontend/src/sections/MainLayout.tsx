@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import type { Genre } from '../components/GenreSidebar';
 import type { Card } from '../components/CardGrid';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
 function MainLayout() {
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -21,7 +21,7 @@ function MainLayout() {
   // Fetch genres once on mount
   useEffect(() => {
     axios
-      .get(`${API_BASE_URL}/api/genres`)
+      .get(`${baseUrl}/api/genres`)
       .then(res => setGenres(res.data))
       .catch(err => console.error('Failed to fetch genres:', err));
   }, []);
@@ -29,7 +29,7 @@ function MainLayout() {
   // Fetch all cards once on mount and when cards change
   const fetchCards = () => {
     axios
-      .get(`${API_BASE_URL}/api/cards`) // Always fetch all cards here
+      .get(`${baseUrl}/api/cards`) // Always fetch all cards here
       .then(res => setCards(res.data))
       .catch(err => console.error('Failed to fetch cards:', err));
   };
@@ -50,7 +50,7 @@ function MainLayout() {
       setEditingCard(card);
       setIsNew(true);
     } else {
-      fetch(`${API_BASE_URL}/api/cards/${card._id}`)
+      fetch(`${baseUrl}/api/cards/${card._id}`)
         .then(res => res.json())
         .then(data => {
           setEditingCard(data);
@@ -73,7 +73,7 @@ function MainLayout() {
   function handleDelete(id: string) {
     const toastId = toast.loading('Deleting game entry...');
 
-    fetch(`${API_BASE_URL}/api/cards/${id}`, {
+    fetch(`${baseUrl}/api/cards/${id}`, {
       method: 'DELETE',
     })
       .then(res => {
