@@ -8,10 +8,10 @@ type Card = {
   image: string;
   cloudinaryPublicId?: string;
   score: number;
-  genres?: string[];
+  categories?: string[];
 };
 
-type Genre = {
+type Category = {
   _id: string;
   name: string;
 };
@@ -26,8 +26,8 @@ type EditGameSectionProps = {
 function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps) {
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const [formData, setFormData] = useState<Card | null>(null);
-  const [availableGenres, setAvailableGenres] = useState<Genre[]>([]);
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -38,16 +38,16 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
   useEffect(() => {
-    async function fetchGenres() {
+    async function fetchCategories() {
       try {
-        const res = await fetch(`${baseUrl}/api/genres`);
+        const res = await fetch(`${baseUrl}/api/categories`);
         const data = await res.json();
-        setAvailableGenres(data);
+        setAvailableCategories(data);
       } catch (err) {
-        console.error('Failed to fetch genres', err);
+        console.error('Failed to fetch categories', err);
       }
     }
-    fetchGenres();
+    fetchCategories();
   }, [baseUrl]);
 
   useEffect(() => {
@@ -59,9 +59,9 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         image: card.image || '',
         cloudinaryPublicId: card.cloudinaryPublicId,
         score: card.score || 0,
-        genres: card.genres || [],
+        categories: card.categories || [],
       });
-      setSelectedGenres(card.genres || []);
+      setSelectedCategories(card.categories || []);
       setImagePreview(card.image || '');
       setSelectedFile(null);
     } else if (isNew) {
@@ -71,9 +71,9 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         image: '',
         cloudinaryPublicId: undefined,
         score: 0,
-        genres: [],
+        categories: [],
       });
-      setSelectedGenres([]);
+      setSelectedCategories([]);
       setImagePreview('');
       setSelectedFile(null);
     } else {
@@ -312,7 +312,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           image: imageUrl,
           cloudinaryPublicId: cloudinaryPublicId,
           score: safeScore,
-          genres: selectedGenres,
+          categories: selectedCategories,
         }),
       });
 
@@ -443,17 +443,17 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           <label>
             <span className="mb-2 block">Categories (multiple select)</span>
             <div className="flex flex-wrap gap-2">
-              {availableGenres.map((genre) => {
-                const isSelected = selectedGenres.includes(genre._id);
+              {availableCategories.map((category) => {
+                const isSelected = selectedCategories.includes(category._id);
                 return (
                   <button
-                    key={genre._id}
+                    key={category._id}
                     type="button"
                     onClick={() => {
                       if (isSelected) {
-                        setSelectedGenres(selectedGenres.filter((id) => id !== genre._id));
+                        setSelectedCategories(selectedCategories.filter((id) => id !== category._id));
                       } else {
-                        setSelectedGenres([...selectedGenres, genre._id]);
+                        setSelectedCategories([...selectedCategories, category._id]);
                       }
                     }}
                     className={`cursor-pointer rounded-md py-2 px-4
@@ -465,7 +465,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                     `}
                     aria-pressed={isSelected}
                   >
-                    {genre.name}
+                    {category.name}
                   </button>
                 );
               })}

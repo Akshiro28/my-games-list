@@ -19,14 +19,14 @@ cloudinary.config({
 app.use(cors());
 app.use(express.json());
 
-let db, cardsCollection, genresCollection;
+let db, cardsCollection, categoriesCollection;
 
 async function start() {
   const client = new MongoClient(uri);
   await client.connect();
   db = client.db(dbName);
   cardsCollection = db.collection('cards');
-  genresCollection = db.collection('genres');
+  categoriesCollection = db.collection('categories');
 
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
@@ -70,14 +70,14 @@ app.get('/api/cards/:id', async (req, res) => {
   }
 });
 
-// Get all genres
-app.get('/api/genres', async (req, res) => {
+// Get all categories
+app.get('/api/categories', async (req, res) => {
   try {
-    const genres = await genresCollection.find().toArray();
-    res.json(genres);
+    const categories = await categoriesCollection.find().toArray();
+    res.json(categories);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch genres' });
+    res.status(500).json({ error: 'Failed to fetch categories' });
   }
 });
 
@@ -93,8 +93,8 @@ app.post('/api/cards', async (req, res) => {
   }
 });
 
-// Create new genre
-app.post('/api/genres', async (req, res) => {
+// Create new category
+app.post('/api/categories', async (req, res) => {
   try {
     const { name } = req.body;
 
@@ -102,11 +102,11 @@ app.post('/api/genres', async (req, res) => {
       return res.status(400).json({ error: 'Name is required' });
     }
 
-    const result = await genresCollection.insertOne({ name: name.trim() });
+    const result = await categoriesCollection.insertOne({ name: name.trim() });
     res.status(201).json({ _id: result.insertedId, name: name.trim() });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to create genre' });
+    res.status(500).json({ error: 'Failed to create category' });
   }
 });
 
@@ -137,8 +137,8 @@ app.put('/api/cards/:id', async (req, res) => {
   }
 });
 
-// Update genre
-app.put('/api/genres/:id', async (req, res) => {
+// Update category
+app.put('/api/categories/:id', async (req, res) => {
   const { id } = req.params;
   const { name } = req.body;
 
@@ -147,7 +147,7 @@ app.put('/api/genres/:id', async (req, res) => {
   }
 
   try {
-    const result = await genresCollection.updateOne(
+    const result = await categoriesCollection.updateOne(
       { _id: new ObjectId(id) },
       { $set: { name } }
     );
@@ -156,7 +156,7 @@ app.put('/api/genres/:id', async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    const updatedCategory = await genresCollection.findOne({ _id: new ObjectId(id) });
+    const updatedCategory = await categoriesCollection.findOne({ _id: new ObjectId(id) });
     res.json(updatedCategory);
   } catch (err) {
     console.error(err);
@@ -201,31 +201,31 @@ app.delete('/api/cards/:id', async (req, res) => {
   }
 });
 
-// Delete genre (UPDATED to also clean up cards referencing this genre)
-app.delete('/api/genres/:id', async (req, res) => {
+// Delete category (UPDATED to also clean up cards referencing this category)
+app.delete('/api/categories/:id', async (req, res) => {
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
-    return res.status(400).json({ error: 'Invalid genre ID' });
+    return res.status(400).json({ error: 'Invalid category ID' });
   }
 
   try {
-    // Delete genre document
-    const result = await genresCollection.deleteOne({ _id: new ObjectId(id) });
+    // Delete category document
+    const result = await categoriesCollection.deleteOne({ _id: new ObjectId(id) });
 
     if (result.deletedCount === 0) {
-      return res.status(404).json({ error: 'Genre not found' });
+      return res.status(404).json({ error: 'Category not found' });
     }
 
-    // Remove the deleted genre's ID from all cards referencing it
+    // Remove the deleted category's ID from all cards referencing it
     await cardsCollection.updateMany(
-      { genres: new ObjectId(id) },
-      { $pull: { genres: new ObjectId(id) } }
+      { categories: new ObjectId(id) },
+      { $pull: { categories: new ObjectId(id) } }
     );
 
-    res.status(200).json({ message: 'Genre deleted and references cleaned up' });
+    res.status(200).json({ message: 'Category deleted and references cleaned up' });
   } catch (error) {
-    console.error('Delete genre error:', error);
+    console.error('Delete category error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

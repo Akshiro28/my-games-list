@@ -10,10 +10,10 @@ type Category = {
 type EditCategorySectionProps = {
   onClose: () => void;
   onSave: () => void;
-  onDeleteGenre: (id: string) => void;
+  onDeleteCategory: (id: string) => void;
 };
 
-function EditCategorySection({ onClose, onSave, onDeleteGenre }: EditCategorySectionProps) {
+function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategorySectionProps) {
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ function EditCategorySection({ onClose, onSave, onDeleteGenre }: EditCategorySec
     async function fetchCategories() {
       setLoadingCategories(true);
       try {
-        const res = await fetch(`${baseUrl}/api/genres`);
+        const res = await fetch(`${baseUrl}/api/categories`);
         if (!res.ok) throw new Error('Failed to fetch categories');
         const data: Category[] = await res.json();
         setCategories(data);
@@ -71,7 +71,7 @@ function EditCategorySection({ onClose, onSave, onDeleteGenre }: EditCategorySec
     const toastId = toast.loading('Adding category...');
 
     try {
-      const res = await fetch(`${baseUrl}/api/genres`, {
+      const res = await fetch(`${baseUrl}/api/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim() }),
@@ -84,7 +84,7 @@ function EditCategorySection({ onClose, onSave, onDeleteGenre }: EditCategorySec
       setCategories((prev) => [...prev, newCategory]);
       setName('');
 
-      // Call onSave prop to notify parent to refresh genres list
+      // Call onSave prop to notify parent to refresh categories list
       onSave();
 
     } catch (err) {
@@ -107,7 +107,7 @@ function EditCategorySection({ onClose, onSave, onDeleteGenre }: EditCategorySec
     const id = pendingDeleteCategory._id;
 
     try {
-      await onDeleteGenre(id);  // Parent deletes genre on server
+      await onDeleteCategory(id);  // Parent deletes category on server
       setCategories((prev) => prev.filter((cat) => cat._id !== id)); // Remove locally
       setPendingDeleteCategory(null);
     } catch (err) {
@@ -139,7 +139,7 @@ function EditCategorySection({ onClose, onSave, onDeleteGenre }: EditCategorySec
 
     const toastId = toast.loading('Saving changes...');
     try {
-      const res = await fetch(`${baseUrl}/api/genres/${id}`, {
+      const res = await fetch(`${baseUrl}/api/categories/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: editingName.trim() }),
@@ -154,7 +154,7 @@ function EditCategorySection({ onClose, onSave, onDeleteGenre }: EditCategorySec
       toast.success('Category updated', { id: toastId });
       cancelEditing();
 
-      // Call onSave prop to notify parent to refresh genres list
+      // Call onSave prop to notify parent to refresh categories list
       onSave();
 
     } catch (err) {
@@ -174,7 +174,7 @@ function EditCategorySection({ onClose, onSave, onDeleteGenre }: EditCategorySec
         <button
           onClick={onClose}
           className="mb-6 bg-[var(--thin)] py-2 px-4 rounded-md cursor-pointer hover:bg-[var(--thin-brighter)]"
-          aria-label="Go back to genre list"
+          aria-label="Go back to category list"
         >
           &larr; Go back
         </button>

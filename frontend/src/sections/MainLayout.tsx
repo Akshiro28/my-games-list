@@ -1,31 +1,31 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import GenreSidebar from '../components/GenreSidebar';
+import CategorySidebar from '../components/CategorySidebar';
 import CardGrid from '../components/CardGrid';
 import EditGameSection from '../components/EditGameSection';
 import EditCategorySection from '../components/EditCategorySection';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 
-import type { Genre } from '../components/GenreSidebar';
+import type { Category } from '../components/CategorySidebar';
 import type { Card } from '../components/CardGrid';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
 function MainLayout() {
-  const [genres, setGenres] = useState<Genre[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
-  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [editingCategory, setEditingCategory] = useState(false);
 
-  // Reusable function to reload genres from server and update state
-  function refreshGenres() {
+  // Reusable function to reload categories from server and update state
+  function refreshCategories() {
     axios
-      .get(`${baseUrl}/api/genres`)
-      .then(res => setGenres(res.data))
-      .catch(err => console.error('Failed to fetch genres:', err));
+      .get(`${baseUrl}/api/categories`)
+      .then(res => setCategories(res.data))
+      .catch(err => console.error('Failed to fetch categories:', err));
   }
 
   function openCategoryEditor() {
@@ -36,41 +36,41 @@ function MainLayout() {
     setEditingCategory(false);
   }
 
-  // Reload genres after add or update
+  // Reload categories after add or update
   function handleCategorySave(closeAfterSave: boolean = true) {
-    refreshGenres();
+    refreshCategories();
     if (closeAfterSave) {
       setEditingCategory(false);
     }
   }
 
-  // Delete a genre and update genres state by reloading fresh from server
-  async function handleDeleteGenre(id: string) {
-    const toastId = toast.loading('Deleting genre...');
+  // Delete a category and update categories state by reloading fresh from server
+  async function handleDeleteCategory(id: string) {
+    const toastId = toast.loading('Deleting category...');
 
     try {
-      const res = await axios.delete(`${baseUrl}/api/genres/${id}`);
+      const res = await axios.delete(`${baseUrl}/api/categories/${id}`);
 
       if (res.status === 200) {
-        refreshGenres();
-        toast.success('Genre deleted!', { id: toastId });
+        refreshCategories();
+        toast.success('Category deleted!', { id: toastId });
       } else {
-        toast.error('Failed to delete genre.', { id: toastId });
+        toast.error('Failed to delete category.', { id: toastId });
       }
     } catch (err: any) {
-      console.error('Error deleting genre:', err);
+      console.error('Error deleting category:', err);
 
       if (err.response?.status === 404) {
-        toast.error('Genre not found on server.', { id: toastId });
+        toast.error('Category not found on server.', { id: toastId });
       } else {
-        toast.error('Error deleting genre.', { id: toastId });
+        toast.error('Error deleting category.', { id: toastId });
       }
     }
   }
 
-  // Fetch genres once on mount
+  // Fetch categories once on mount
   useEffect(() => {
-    refreshGenres();
+    refreshCategories();
   }, []);
 
   // Fetch all cards once on mount
@@ -85,9 +85,9 @@ function MainLayout() {
     fetchCards();
   }, []);
 
-  // Filter cards client-side based on selectedGenre
-  const filteredCards = selectedGenre
-    ? cards.filter(card => card.genres && card.genres.includes(selectedGenre))
+  // Filter cards client-side based on selectedCategory
+  const filteredCards = selectedCategory
+    ? cards.filter(card => card.categories && card.categories.includes(selectedCategory))
     : cards;
 
   function handleEditClick(card: Card) {
@@ -144,10 +144,10 @@ function MainLayout() {
       >
         <div className="main-layout flex w-full transition-all duration-800">
           <div className="card-grid">
-            <GenreSidebar
-              genres={genres}
-              selectedGenre={selectedGenre}
-              setSelectedGenre={setSelectedGenre}
+            <CategorySidebar
+              categories={categories}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
               onAddCategoryClick={openCategoryEditor}
             />
           </div>
@@ -192,7 +192,7 @@ function MainLayout() {
               <EditCategorySection
                 onClose={closeCategoryEditor}
                 onSave={() => handleCategorySave(false)}  // false = don't close after save
-                onDeleteGenre={handleDeleteGenre}
+                onDeleteCategory={handleDeleteCategory}
               />
             )}
           </div>

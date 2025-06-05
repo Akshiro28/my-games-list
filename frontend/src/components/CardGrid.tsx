@@ -9,7 +9,7 @@ export type Card = {
   description: string;
   image: string;
   score: number;
-  genres?: string[];
+  categories?: string[];
 };
 
 type CardGridProps = {
@@ -192,7 +192,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                   description: '',
                   image: '',
                   score: 0,
-                  genres: [],
+                  categories: [],
                 })}
                 className="px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]"
               >

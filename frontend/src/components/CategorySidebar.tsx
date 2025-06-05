@@ -1,25 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
 
-export type Genre = {
+export type Category = {
   _id: string;
   name: string;
 };
 
-type GenreSidebarProps = {
-  genres: Genre[];
-  selectedGenre: string | null;
-  setSelectedGenre: (genreId: string | null) => void;
+type CategorySidebarProps = {
+  categories: Category[];
+  selectedCategory: string | null;
+  setSelectedCategory: (categoryId: string | null) => void;
   onAddCategoryClick: () => void;
 };
 
-function GenreSidebar({ genres, selectedGenre, setSelectedGenre, onAddCategoryClick }: GenreSidebarProps) {
+function CategorySidebar({ categories, selectedCategory, setSelectedCategory, onAddCategoryClick }: CategorySidebarProps) {
   const [search, setSearch] = useState('');
   const [topGradientHeight, setTopGradientHeight] = useState<number>(0);
   const [bottomGradientHeight, setBottomGradientHeight] = useState<number>(0);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const filteredGenres = genres.filter(genre =>
-    genre.name.toLowerCase().includes(search.toLowerCase())
+  const filteredCategories = categories.filter(category =>
+    category.name.toLowerCase().includes(search.toLowerCase())
   );
 
   useEffect(() => {
@@ -55,7 +55,7 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre, onAddCategoryCl
     return () => {
       if (current) current.removeEventListener('scroll', handleScroll);
     };
-  }, [filteredGenres]);
+  }, [filteredCategories]);
 
   return (
     <aside className="max-w-64 flex flex-col h-full relative">
@@ -84,7 +84,7 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre, onAddCategoryCl
         className="space-y-1 overflow-y-auto flex-1 relative"
         style={{ maxHeight: 'calc(100% - 130px)' }}
       >
-        {filteredGenres.length === 0 ? (
+        {filteredCategories.length === 0 ? (
           <div className="w-full h-full flex items-center justify-center text-[var(--thin-brighter)] text-center px-4 border-2 border-dashed border-[var(--thin)] rounded-md">
             No categories found.
           </div>
@@ -92,24 +92,24 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre, onAddCategoryCl
           <>
             <li>
               <button
-                onClick={() => setSelectedGenre(null)}
+                onClick={() => setSelectedCategory(null)}
                 className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] cursor-pointer ${
-                  !selectedGenre ? 'bg-[var(--thin)]' : ''
+                  !selectedCategory ? 'bg-[var(--thin)]' : ''
                 }`}
               >
                 All
               </button>
             </li>
 
-            {filteredGenres.map((genre) => (
-              <li key={genre._id}>
+            {filteredCategories.map((category) => (
+              <li key={category._id}>
                 <button
-                  onClick={() => setSelectedGenre(genre._id)}
+                  onClick={() => setSelectedCategory(category._id)}
                   className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] cursor-pointer ${
-                    selectedGenre === genre._id ? 'bg-[var(--thin)]' : ''
+                    selectedCategory === category._id ? 'bg-[var(--thin)]' : ''
                   }`}
                 >
-                  {genre.name}
+                  {category.name}
                 </button>
               </li>
             ))}
@@ -118,7 +118,7 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre, onAddCategoryCl
       </ul>
 
       <div
-        className="pointer-events-none absolute bottom-0 left-0 w-full genre-top-gradient transition-height duration-600 ease-in-out"
+        className="pointer-events-none absolute bottom-0 left-0 w-full category-top-gradient transition-height duration-600 ease-in-out"
         style={{
           background: 'linear-gradient(to top, rgba(28,31,42,1), transparent)',
           height: topGradientHeight,
@@ -126,7 +126,7 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre, onAddCategoryCl
       />
 
       <div
-        className="pointer-events-none absolute top-32 left-0 w-full genre-bottom-gradient transition-height duration-600 ease-in-out"
+        className="pointer-events-none absolute top-32 left-0 w-full category-bottom-gradient transition-height duration-600 ease-in-out"
         style={{
           background: 'linear-gradient(to bottom, rgba(28,31,42,1), transparent)',
           height: bottomGradientHeight,
@@ -136,4 +136,4 @@ function GenreSidebar({ genres, selectedGenre, setSelectedGenre, onAddCategoryCl
   );
 }
 
-export default GenreSidebar;
+export default CategorySidebar;
