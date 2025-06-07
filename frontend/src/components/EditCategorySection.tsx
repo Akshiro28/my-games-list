@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { createPortal } from 'react-dom';
+import { auth } from '../firebase';
 
 type Category = {
   _id: string;
@@ -19,6 +20,7 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [editingLoading, setEditingLoading] = useState(false);
 
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<Category | null>(null);
 
@@ -28,11 +30,22 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
 
+  async function getIdToken() {
+    const user = auth.currentUser;
+    if (!user) throw new Error('User not logged in');
+    return await user.getIdToken(true);
+  }
+
   useEffect(() => {
     async function fetchCategories() {
       setLoadingCategories(true);
       try {
-        const res = await fetch(`${baseUrl}/api/categories`);
+        const token = await getIdToken();
+        const res = await fetch(`${baseUrl}/api/categories`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (!res.ok) throw new Error('Failed to fetch categories');
         const data: Category[] = await res.json();
         setCategories(data);
@@ -56,6 +69,7 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
     }
   }, [editingId]);
 
+  // --- POST new category ---
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
@@ -71,10 +85,18 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
     const toastId = toast.loading('Adding category...');
 
     try {
+      const token = await getIdToken();
+      const user = auth.currentUser;
+      if (!user) throw new Error('User not logged in');
+      const uid = user.uid;
+
       const res = await fetch(`${baseUrl}/api/categories`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim() }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: name.trim(), uid }), // ✅ include user ID
       });
 
       if (!res.ok) throw new Error('Failed to add category');
@@ -84,9 +106,7 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
       setCategories((prev) => [...prev, newCategory]);
       setName('');
 
-      // Call onSave prop to notify parent to refresh categories list
       onSave();
-
     } catch (err) {
       console.error(err);
       toast.error('Failed to add category', { id: toastId });
@@ -127,6 +147,7 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
     setEditingName('');
   }
 
+  // --- PUT update category ---
   async function saveEditing(id: string) {
     if (!editingName.trim()) {
       toast.error('Category name cannot be empty');
@@ -137,11 +158,16 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
       return;
     }
 
+    setEditingLoading(true);
     const toastId = toast.loading('Saving changes...');
     try {
+      const token = await getIdToken();
       const res = await fetch(`${baseUrl}/api/categories/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ name: editingName.trim() }),
       });
 
@@ -153,13 +179,12 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
       );
       toast.success('Category updated', { id: toastId });
       cancelEditing();
-
-      // Call onSave prop to notify parent to refresh categories list
       onSave();
-
     } catch (err) {
       console.error(err);
       toast.error('Failed to update category', { id: toastId });
+    } finally {
+      setEditingLoading(false);
     }
   }
 
@@ -273,10 +298,13 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
                         </button>
                         <button
                           onClick={() => saveEditing(cat._id)}
-                          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-500 cursor-pointer"
+                          disabled={editingLoading}
+                          className={`bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-500 cursor-pointer ${
+                            editingLoading ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                           aria-label={`Save changes to ${cat.name}`}
                         >
-                          Save
+                          {editingLoading ? 'Saving...' : 'Save'}
                         </button>
                       </>
                     ) : (
@@ -314,10 +342,13 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
                 <div className="flex justify-center gap-4">
                   <button
                     onClick={handleDeleteConfirmed}
-                    className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-500 cursor-pointer"
+                    disabled={deleting}
+                    className={`bg-red-600 text-white px-6 py-2 rounded hover:bg-red-500 cursor-pointer ${
+                      deleting ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                     aria-label={`Confirm delete category ${pendingDeleteCategory.name}`}
                   >
-                    Yes, Delete
+                    {deleting ? 'Deleting...' : 'Yes, Delete'}
                   </button>
                   <button
                     onClick={() => setPendingDeleteCategory(null)}

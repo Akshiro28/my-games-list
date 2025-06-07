@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { toast } from "react-hot-toast";
 
 export type Category = {
   _id: string;
@@ -10,9 +11,10 @@ type CategorySidebarProps = {
   selectedCategory: string | null;
   setSelectedCategory: (categoryId: string | null) => void;
   onAddCategoryClick: () => void;
+  user: any;
 };
 
-function CategorySidebar({ categories, selectedCategory, setSelectedCategory, onAddCategoryClick }: CategorySidebarProps) {
+function CategorySidebar({ categories, selectedCategory, setSelectedCategory, onAddCategoryClick, user }: CategorySidebarProps) {
   const [search, setSearch] = useState('');
   const [topGradientHeight, setTopGradientHeight] = useState<number>(0);
   const [bottomGradientHeight, setBottomGradientHeight] = useState<number>(0);
@@ -71,9 +73,16 @@ function CategorySidebar({ categories, selectedCategory, setSelectedCategory, on
             className="w-full px-3 py-2 mb-6 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder:italic"
           />
 
-          <div className="flex items-center justify-center border-2 border-[var(--thin)] h-[44px] px-3 ms-2 rounded-md text-[var(--thin-brighter)] hover:text-[var(--text-thin)] hover:border-[var(--thin-brighter)] cursor-pointer"
-            onClick={onAddCategoryClick}
-          > 
+          <div
+            className="flex items-center justify-center border-2 border-[var(--thin)] h-[44px] px-3 ms-2 rounded-md text-[var(--thin-brighter)] hover:text-[var(--text-thin)] hover:border-[var(--thin-brighter)] cursor-pointer"
+            onClick={() => {
+              if (!user) {
+                toast.error("Sign in to continue");
+                return;
+              }
+              onAddCategoryClick();
+            }}
+          >
             Edit
           </div>
         </div>

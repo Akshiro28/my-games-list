@@ -1,18 +1,21 @@
+// src/pages/MainLayout.tsx  (or wherever your file is)
+
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import CategorySidebar from '../components/CategorySidebar';
 import CardGrid from '../components/CardGrid';
 import EditGameSection from '../components/EditGameSection';
 import EditCategorySection from '../components/EditCategorySection';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
+import axiosAuth from '../axiosAuth';
+import type { User } from 'firebase/auth';
 
 import type { Category } from '../components/CategorySidebar';
 import type { Card } from '../components/CardGrid';
 
-const baseUrl = import.meta.env.VITE_API_BASE_URL;
-
 function MainLayout() {
+  const [user, setUser] = useState<User | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -20,12 +23,37 @@ function MainLayout() {
   const [isNew, setIsNew] = useState(false);
   const [editingCategory, setEditingCategory] = useState(false);
 
-  // Reusable function to reload categories from server and update state
-  function refreshCategories() {
-    axios
-      .get(`${baseUrl}/api/categories`)
-      .then(res => setCategories(res.data))
-      .catch(err => console.error('Failed to fetch categories:', err));
+  // Listen for Firebase Auth state changes
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Fetch categories and cards only when user is signed in
+  useEffect(() => {
+    if (user) {
+      refreshCategories();
+      fetchCards();
+    } else {
+      // Clear data if no user
+      setCategories([]);
+      setCards([]);
+    }
+  }, [user]);
+
+  // --- CATEGORY HANDLING ---
+
+  async function refreshCategories() {
+    try {
+      const res = await axiosAuth.get<Category[]>('/api/categories');
+      setCategories(res.data);
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+    }
   }
 
   function openCategoryEditor() {
@@ -36,30 +64,18 @@ function MainLayout() {
     setEditingCategory(false);
   }
 
-  // Reload categories after add or update
-  function handleCategorySave(closeAfterSave: boolean = true) {
-    refreshCategories();
-    if (closeAfterSave) {
-      setEditingCategory(false);
-    }
-  }
-
-  // Delete a category and update categories state by reloading fresh from server
   async function handleDeleteCategory(id: string) {
     const toastId = toast.loading('Deleting category...');
-
     try {
-      const res = await axios.delete(`${baseUrl}/api/categories/${id}`);
-
+      const res = await axiosAuth.delete(`/api/categories/${id}`);
       if (res.status === 200) {
-        refreshCategories();
+        await refreshCategories();
         toast.success('Category deleted!', { id: toastId });
       } else {
         toast.error('Failed to delete category.', { id: toastId });
       }
     } catch (err: any) {
       console.error('Error deleting category:', err);
-
       if (err.response?.status === 404) {
         toast.error('Category not found on server.', { id: toastId });
       } else {
@@ -68,40 +84,40 @@ function MainLayout() {
     }
   }
 
-  // Fetch categories once on mount
-  useEffect(() => {
+  function handleCategorySave(closeAfterSave = true) {
     refreshCategories();
-  }, []);
+    if (closeAfterSave) {
+      closeCategoryEditor();
+    }
+  }
 
-  // Fetch all cards once on mount
-  const fetchCards = () => {
-    axios
-      .get(`${baseUrl}/api/cards`)
-      .then(res => setCards(res.data))
-      .catch(err => console.error('Failed to fetch cards:', err));
-  };
+  // --- CARD (GAME) HANDLING ---
 
-  useEffect(() => {
-    fetchCards();
-  }, []);
+  async function fetchCards() {
+    try {
+      const res = await axiosAuth.get<Card[]>('/api/cards');
+      setCards(res.data);
+    } catch (err) {
+      console.error('Failed to fetch cards:', err);
+    }
+  }
 
-  // Filter cards client-side based on selectedCategory
   const filteredCards = selectedCategory
-    ? cards.filter(card => card.categories && card.categories.includes(selectedCategory))
+    ? cards.filter(card => card.categories?.includes(selectedCategory))
     : cards;
 
-  function handleEditClick(card: Card) {
+  async function handleEditClick(card: Card) {
     if (card._id === '-1' || card._id === '_new') {
       setEditingCard(card);
       setIsNew(true);
     } else {
-      axios
-        .get(`${baseUrl}/api/cards/${card._id}`)
-        .then(res => {
-          setEditingCard(res.data);
-          setIsNew(false);
-        })
-        .catch(err => console.error('Failed to fetch card details:', err));
+      try {
+        const res = await axiosAuth.get<Card>(`/api/cards/${card._id}`);
+        setEditingCard(res.data);
+        setIsNew(false);
+      } catch (err) {
+        console.error('Failed to fetch card details:', err);
+      }
     }
   }
 
@@ -115,25 +131,23 @@ function MainLayout() {
     closeEditSection();
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     const toastId = toast.loading('Deleting game entry...');
-
-    fetch(`${baseUrl}/api/cards/${id}`, {
-      method: 'DELETE',
-    })
-      .then(res => {
-        if (res.ok) {
-          setCards(prevCards => prevCards.filter(card => card._id !== id));
-          toast.success('Game deleted!', { id: toastId });
-        } else {
-          toast.error('Failed to delete game.', { id: toastId });
-        }
-      })
-      .catch(err => {
-        console.error('Delete failed', err);
-        toast.error('An error occurred while deleting.', { id: toastId });
-      });
+    try {
+      const res = await axiosAuth.delete(`/api/cards/${id}`);
+      if (res.status === 200) {
+        setCards(prev => prev.filter(card => card._id !== id));
+        toast.success('Game deleted!', { id: toastId });
+      } else {
+        toast.error('Failed to delete game.', { id: toastId });
+      }
+    } catch (err) {
+      console.error('Delete failed', err);
+      toast.error('An error occurred while deleting.', { id: toastId });
+    }
   }
+
+  // --- RENDER ---
 
   return (
     <>
@@ -149,6 +163,7 @@ function MainLayout() {
               selectedCategory={selectedCategory}
               setSelectedCategory={setSelectedCategory}
               onAddCategoryClick={openCategoryEditor}
+              user={user}
             />
           </div>
 
@@ -163,6 +178,7 @@ function MainLayout() {
           </div>
         </div>
 
+        {/* Edit Game Section */}
         {!editingCategory && (
           <div
             className={`edit-section container absolute top-full w-full h-full bg-[var(--background)] transition-all duration-800 ease-in-out ${
@@ -180,6 +196,7 @@ function MainLayout() {
           </div>
         )}
 
+        {/* Edit Category Section */}
         {!editingCard && (
           <div
             className={`edit-section container absolute top-full w-full h-full bg-[var(--background)] transition-all duration-800 ease-in-out ${
@@ -191,7 +208,7 @@ function MainLayout() {
             {editingCategory && (
               <EditCategorySection
                 onClose={closeCategoryEditor}
-                onSave={() => handleCategorySave(false)}  // false = don't close after save
+                onSave={() => handleCategorySave(false)}
                 onDeleteCategory={handleDeleteCategory}
               />
             )}

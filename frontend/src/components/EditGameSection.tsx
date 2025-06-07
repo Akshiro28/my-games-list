@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
+import React from 'react';
+import { getAuth } from "firebase/auth";
 
 type Card = {
   _id?: string;
@@ -26,7 +28,7 @@ type EditGameSectionProps = {
 function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps) {
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const [formData, setFormData] = useState<Card | null>(null);
-  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
+  const [availableCategories, setAvailableCategories] = React.useState<Category[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -40,11 +42,29 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const res = await fetch(`${baseUrl}/api/categories`);
+        const user = getAuth().currentUser;
+        if (!user) {
+          console.warn('User not logged in');
+          return;
+        }
+
+        const token = await user.getIdToken();
+
+        const res = await fetch(`${baseUrl}/api/categories`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch categories (${res.status})`);
+        }
+
         const data = await res.json();
         setAvailableCategories(data);
       } catch (err) {
         console.error('Failed to fetch categories', err);
+        toast.error("Could not load categories");
       }
     }
     fetchCategories();
@@ -303,9 +323,16 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         cloudinaryPublicId = uploadResult.publicId;
       }
 
+      const user = getAuth().currentUser;
+      if (!user) throw new Error("User not logged in");
+      const token = await user.getIdToken();
+
       const response = await fetch(`${baseUrl}/api/cards${isCreating ? '' : '/' + formData._id}`, {
         method: isCreating ? 'POST' : 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           name: formData.name,
           description: formData.description,
@@ -440,11 +467,13 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
             />
           </label>
 
-          <label>
-            <span className="mb-2 block">Categories (multiple select)</span>
+          <fieldset>
+            <legend className="mb-2 block">Categories (multiple select)</legend>
 
-            {availableCategories.length === 0 ? (
-              <p className="italic text-[var(--thin-brighter)]">No categories yet. Add one to begin categorizing your games.</p>
+            {!Array.isArray(availableCategories) || availableCategories.length === 0 ? (
+              <p className="italic text-[var(--thin-brighter)]">
+                No categories yet. Add one to begin categorizing your games.
+              </p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {availableCategories.map((category) => {
@@ -454,20 +483,19 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                       key={category._id}
                       type="button"
                       onClick={() => {
-                        if (isSelected) {
-                          setSelectedCategories(selectedCategories.filter((id) => id !== category._id));
-                        } else {
-                          setSelectedCategories([...selectedCategories, category._id]);
-                        }
-                      }}
-                      className={`cursor-pointer rounded-md py-2 px-4
-                        ${
+                        setSelectedCategories((prevSelected) =>
                           isSelected
-                            ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]'
-                            : 'bg-[var(--thin)] hover:bg-[var(--thin-brighter)]'
-                        }
-                      `}
+                            ? prevSelected.filter((id) => id !== category._id)
+                            : [...prevSelected, category._id]
+                        );
+                      }}
+                      className={`cursor-pointer rounded-md py-2 px-4 flex-shrink-0 flex-grow-0 ${
+                        isSelected
+                          ? 'bg-[var(--thin-brighter-brighter)] hover:bg-[var(--thin-brighter-brighter-brighter)]'
+                          : 'bg-[var(--thin)] hover:bg-[var(--thin-brighter)]'
+                      }`}
                       aria-pressed={isSelected}
+                      aria-label={`${category.name} category ${isSelected ? 'selected' : 'not selected'}`}
                     >
                       {category.name}
                     </button>
@@ -475,7 +503,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                 })}
               </div>
             )}
-          </label>
+          </fieldset>
 
           <button
             type="submit"

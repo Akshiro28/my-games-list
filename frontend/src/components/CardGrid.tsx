@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import editIcon from '/logo/edit.png';
 import deleteIcon from '/logo/delete.png';
 import Card3D from './Card3D';
+import { useAuth } from "../AuthContext";
+import { toast } from "react-hot-toast";
 
 export type Card = {
   _id: string;
@@ -32,6 +34,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [mode, setMode] = useState<'edit' | 'delete' | null>(null);
+  const { user } = useAuth();
 
   const [topGradientHeight, setTopGradientHeight] = useState<number>(0);
   const [bottomGradientHeight, setBottomGradientHeight] = useState<number>(0);
@@ -175,7 +178,13 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
 
             <div className="flex gap-2 w-full sm:w-auto sm:flex-none sm:flex-row flex-col">
               <button
-                onClick={() => setMode(prev => (prev === 'edit' ? null : 'edit'))}
+                onClick={() => {
+                  if (!user) {
+                    toast.error("Sign in to continue");
+                    return;
+                  }
+                  setMode(prev => (prev === 'edit' ? null : 'edit'));
+                }}
                 className={`px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer
                   ${mode === 'edit'
                     ? 'border-blue-600 text-blue-600 bg-[#1B2541] hover:border-blue-500 hover:text-blue-500'
@@ -186,21 +195,33 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
               </button>
 
               <button
-                onClick={() => onEditClick({
-                  _id: '_new',
-                  name: '',
-                  description: '',
-                  image: '',
-                  score: 0,
-                  categories: [],
-                })}
+                onClick={() => {
+                  if (!user) {
+                    toast.error("Sign in to continue");
+                    return;
+                  }
+                  onEditClick({
+                    _id: '_new',
+                    name: '',
+                    description: '',
+                    image: '',
+                    score: 0,
+                    categories: [],
+                  });
+                }}
                 className="px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]"
               >
                 + Add New Game
               </button>
 
               <button
-                onClick={() => setMode(prev => (prev === 'delete' ? null : 'delete'))}
+                onClick={() => {
+                  if (!user) {
+                    toast.error("Sign in to continue");
+                    return;
+                  }
+                  setMode(prev => (prev === 'delete' ? null : 'delete'));
+                }}
                 className={`px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer
                   ${mode === 'delete'
                     ? 'border-red-600 text-red-600 bg-[#531621] hover:border-red-500 hover:text-red-500'
