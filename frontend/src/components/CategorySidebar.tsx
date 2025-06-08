@@ -20,7 +20,11 @@ function CategorySidebar({ categories, selectedCategory, setSelectedCategory, on
   const [bottomGradientHeight, setBottomGradientHeight] = useState<number>(0);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const filteredCategories = categories.filter(category =>
+  const sortedCategories = [...categories].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+
+  const filteredCategories = sortedCategories.filter(category =>
     category.name.toLowerCase().includes(search.toLowerCase())
   );
 
