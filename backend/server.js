@@ -255,6 +255,27 @@ app.delete('/api/cards/:id', authenticate, async (req, res) => {
   }
 });
 
+app.delete('/api/categories/:id', authenticate, async (req, res) => {
+  const { id } = req.params;
+  const uid = req.user.uid;
+
+  try {
+    const result = await db.collection('categories').deleteOne({
+      _id: new ObjectId(id),
+      uid: uid,
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Category not found or unauthorized' });
+    }
+
+    res.status(200).json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Categories routes (strict auth)
 app.get('/api/categories', authenticateOptional, async (req, res) => {
   try {
