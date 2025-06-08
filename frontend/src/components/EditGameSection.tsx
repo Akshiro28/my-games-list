@@ -314,12 +314,18 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       // NEW: If replacing image on an existing card, delete old image from Cloudinary
       if (!isCreating && selectedFile && cloudinaryPublicId) {
         try {
+          const user = getAuth().currentUser;
+          if (!user) throw new Error("User not logged in");
+          const token = await user.getIdToken();
+
           await fetch(`${baseUrl}/api/images/delete`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,  // <<< important
+            },
             body: JSON.stringify({ publicId: cloudinaryPublicId }),
           });
-          // Optionally, you can handle response and error here
         } catch (err) {
           console.error('Failed to delete old image from Cloudinary:', err);
           // We can still proceed, but notify user optionally
