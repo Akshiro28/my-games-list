@@ -3,7 +3,7 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 
 const axiosAuth = axios.create({
-  baseURL: 'http://localhost:5000', // your backend URL
+  baseURL: process.env.VITE_API_BASE_URL, // your backend URL
 });
 
 // Add a request interceptor to add Firebase ID token to headers
