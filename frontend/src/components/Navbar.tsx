@@ -38,7 +38,7 @@ function Navbar() {
 
       {/* Show template notice only when NOT signed in */}
       {!user && (
-        <div className="flex items-center italic text-gray-600">
+        <div className="flex items-center text-sm italic text-[var(--text-thin)]">
           Welcome! You're viewing Akshiro's list. Sign in to create your own!
         </div>
       )}
