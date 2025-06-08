@@ -33,7 +33,6 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
-  const [mode, setMode] = useState<'edit' | 'delete' | null>(null);
   const { user } = useAuth();
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
