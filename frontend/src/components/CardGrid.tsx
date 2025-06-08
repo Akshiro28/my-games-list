@@ -266,7 +266,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
 
             return (
               <Card3D key={card._id ?? `card-${index}`}>
-                <div className="relative card rounded-lg overflow-hidden bg-[var(--thin)] hover:bg-[#2C3142]">
+                <div className="relative card rounded-lg overflow-hidden bg-[var(--thin)] hover:bg-[#2C3142] h-full">
                   {mode === 'edit' && (
                     <button
                       onClick={() => onEditClick(card)}
