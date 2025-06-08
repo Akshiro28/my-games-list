@@ -114,21 +114,16 @@ app.get("/api/cards", authenticateOptional, async (req, res) => {
     let userId;
 
     if (req.user) {
-      console.log("Authenticated user:", req.user.email);
       userId = req.user.uid;
     } else {
-      console.log("No user authenticated. Looking for template user.");
       const templateUser = await usersCollection.findOne({ email: "joviantogodjali@gmail.com" });
       if (!templateUser) {
-        console.log("Template user not found");
         return res.status(404).json({ error: "Template user not found" });
       }
-      console.log("Found template user:", templateUser.email);
       userId = templateUser.uid;
     }
 
     const cards = await cardsCollection.find({ uid: userId }).toArray();
-    console.log(`Returning ${cards.length} cards for uid: ${userId}`);
     res.json(cards);
   } catch (error) {
     console.error("Failed to fetch cards:", error);
@@ -260,18 +255,34 @@ app.delete('/api/categories/:id', authenticate, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    const result = await db.collection('categories').deleteOne({
-      _id: new ObjectId(id),
-      uid: uid,
+    const categoryId = new ObjectId(id);
+
+    // Delete the category document
+    const deleteResult = await db.collection('categories').deleteOne({
+      _id: categoryId,
+      uid,
     });
 
-    if (result.deletedCount === 0) {
+    if (deleteResult.deletedCount === 0) {
       return res.status(404).json({ message: 'Category not found or unauthorized' });
     }
 
-    res.status(200).json({ message: 'Category deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting category:', error);
+    // Remove the category ID string from cards
+    const updateResult = await db.collection('cards').updateMany(
+      {
+        uid,
+        categories: id, // compare as string
+      },
+      {
+        $pull: { categories: id },
+      }
+    );
+
+    res.status(200).json({
+      message: 'Category deleted and references removed from games',
+    });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
