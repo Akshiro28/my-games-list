@@ -203,6 +203,29 @@ app.put('/api/cards/:id', authenticate, async (req, res) => {
   }
 });
 
+app.put('/api/categories/:id', authenticate, async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  const uid = req.user.uid;
+
+  try {
+    const result = await db.collection('categories').findOneAndUpdate(
+      { _id: new ObjectId(id), uid },
+      { $set: { name } },
+      { returnDocument: 'after' } // returns the updated document
+    );
+
+    if (!result.value) {
+      return res.status(404).json({ message: 'Category not found or not updated' });
+    }
+
+    res.json(result.value);
+  } catch (error) {
+    console.error('Error updating category:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Delete card (strict auth)
 app.delete('/api/cards/:id', authenticate, async (req, res) => {
   if (!req.user) {
