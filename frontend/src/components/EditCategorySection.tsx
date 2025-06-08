@@ -76,8 +76,8 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
       toast.error('Category name cannot be empty');
       return;
     }
-    if (name.length > 25) {
-      toast.error('Category name cannot exceed 25 characters');
+    if (name.length > 30) {
+      toast.error('Category name cannot exceed 30 characters');
       return;
     }
 
@@ -153,8 +153,8 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
       toast.error('Category name cannot be empty');
       return;
     }
-    if (editingName.length > 25) {
-      toast.error('Category name cannot exceed 25 characters');
+    if (editingName.length > 30) {
+      toast.error('Category name cannot exceed 30 characters');
       return;
     }
 
@@ -214,7 +214,7 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
         >
           <label className="block">
             <span className="mb-2 block">
-              Category Name (25 characters max)
+              Category Name (30 characters max)
             </span>
             <input
               type="text"
@@ -222,13 +222,13 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
               value={name}
               onChange={(e) => {
                 const value = e.target.value;
-                if (value.length > 25) {
-                  toast.error('Category name cannot exceed 25 characters');
+                if (value.length > 30) {
+                  toast.error('Category name cannot exceed 30 characters');
                   return;
                 }
                 setName(value);
               }}
-              maxLength={26}
+              maxLength={31}
               placeholder="Enter category name"
               className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] placeholder:italic"
             />
@@ -273,14 +273,14 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
                       value={editingName}
                       onChange={(e) => {
                         const val = e.target.value;
-                        if (val.length > 25) {
-                          toast.error('Category name cannot exceed 25 characters');
+                        if (val.length > 30) {
+                          toast.error('Category name cannot exceed 30 characters');
                           return;
                         }
                         setEditingName(val);
                       }}
                       className="flex-grow hover:border-[var(--thin-brighter-brighter)] rounded-md focus:outline-none"
-                      maxLength={26}
+                      maxLength={31}
                     />
                   ) : (
                     <div className="flex-grow">{cat.name}</div>
