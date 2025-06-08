@@ -16,11 +16,14 @@ async function connectDB() {
   return db;
 }
 
+// ------------------------------
+// Required authentication
+// ------------------------------
 async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token provided" });
+    return res.status(401).json({ message: "Missing or invalid Authorization header" });
   }
 
   const idToken = authHeader.split("Bearer ")[1];
@@ -34,7 +37,6 @@ async function authenticate(req, res, next) {
       picture: decodedToken.picture || '',
     };
 
-    // Use atomic upsert to save or update user info safely
     const db = await connectDB();
     const usersCollection = db.collection("users");
 
@@ -62,4 +64,58 @@ async function authenticate(req, res, next) {
   }
 }
 
-module.exports = authenticate;
+// ------------------------------
+// Optional authentication
+// ------------------------------
+async function authenticateOptional(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    req.user = null; // No token — treat as guest
+    return next();
+  }
+
+  const idToken = authHeader.split("Bearer ")[1];
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    req.user = {
+      uid: decodedToken.uid,
+      name: decodedToken.name || '',
+      email: decodedToken.email || '',
+      picture: decodedToken.picture || '',
+    };
+
+    const db = await connectDB();
+    const usersCollection = db.collection("users");
+
+    await usersCollection.updateOne(
+      { uid: decodedToken.uid },
+      {
+        $set: {
+          name: decodedToken.name || '',
+          email: decodedToken.email || '',
+          picture: decodedToken.picture || '',
+          lastLogin: new Date(),
+        },
+        $setOnInsert: {
+          uid: decodedToken.uid,
+          createdAt: new Date(),
+        },
+      },
+      { upsert: true }
+    );
+
+    next();
+  } catch (error) {
+    console.warn("Optional auth failed, treating as guest:", error?.message || error);
+    req.user = null;
+    next(); // Continue without throwing error
+  }
+}
+
+module.exports = {
+  authenticate,
+  authenticateOptional,
+  connectDB,
+};

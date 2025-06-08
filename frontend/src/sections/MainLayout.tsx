@@ -1,4 +1,4 @@
-// src/pages/MainLayout.tsx  (or wherever your file is)
+// src/pages/MainLayout.tsx
 
 import { useState, useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
@@ -10,7 +10,6 @@ import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import axiosAuth from '../axiosAuth';
 import type { User } from 'firebase/auth';
-
 import type { Category } from '../components/CategorySidebar';
 import type { Card } from '../components/CardGrid';
 
@@ -22,34 +21,35 @@ function MainLayout() {
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [editingCategory, setEditingCategory] = useState(false);
+  const [isTemplateMode, setIsTemplateMode] = useState(false); // <-- NEW
 
   // Listen for Firebase Auth state changes
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
+      setIsTemplateMode(!firebaseUser); // <-- update template mode
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Fetch categories and cards only when user is signed in
+  // Fetch categories and cards whenever auth changes
   useEffect(() => {
-    if (user) {
-      refreshCategories();
-      fetchCards();
-    } else {
-      // Clear data if no user
-      setCategories([]);
-      setCards([]);
-    }
+    const mode = user ? 'user' : 'template';
+    refreshCategories(mode);
+    fetchCards(mode);
   }, [user]);
 
   // --- CATEGORY HANDLING ---
 
-  async function refreshCategories() {
+  async function refreshCategories(mode: 'template' | 'user' = isTemplateMode ? 'template' : 'user') {
     try {
-      const res = await axiosAuth.get<Category[]>('/api/categories');
+      const res = await axiosAuth.get<Category[]>(
+        mode === 'template'
+          ? `/api/categories?uid=template`
+          : '/api/categories'
+      );
       setCategories(res.data);
     } catch (err) {
       console.error('Failed to fetch categories:', err);
@@ -93,9 +93,13 @@ function MainLayout() {
 
   // --- CARD (GAME) HANDLING ---
 
-  async function fetchCards() {
+  async function fetchCards(mode: 'template' | 'user' = isTemplateMode ? 'template' : 'user') {
     try {
-      const res = await axiosAuth.get<Card[]>('/api/cards');
+      const res = await axiosAuth.get<Card[]>(
+        mode === 'template'
+          ? `/api/cards?uid=template`
+          : '/api/cards'
+      );
       setCards(res.data);
     } catch (err) {
       console.error('Failed to fetch cards:', err);

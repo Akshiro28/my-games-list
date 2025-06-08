@@ -77,7 +77,7 @@ function CategorySidebar({ categories, selectedCategory, setSelectedCategory, on
             className="flex items-center justify-center border-2 border-[var(--thin)] h-[44px] px-3 ms-2 rounded-md text-[var(--thin-brighter)] hover:text-[var(--text-thin)] hover:border-[var(--thin-brighter)] cursor-pointer"
             onClick={() => {
               if (!user) {
-                toast.error("Sign in to continue");
+                toast.error("Sign in and start customizing your list!");
                 return;
               }
               onAddCategoryClick();

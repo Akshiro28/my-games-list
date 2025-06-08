@@ -180,7 +180,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
               <button
                 onClick={() => {
                   if (!user) {
-                    toast.error("Sign in to continue");
+                    toast.error("Sign in and start customizing your list!");
                     return;
                   }
                   setMode(prev => (prev === 'edit' ? null : 'edit'));
@@ -197,7 +197,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
               <button
                 onClick={() => {
                   if (!user) {
-                    toast.error("Sign in to continue");
+                    toast.error("Sign in and start customizing your list!");
                     return;
                   }
                   onEditClick({
@@ -217,7 +217,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
               <button
                 onClick={() => {
                   if (!user) {
-                    toast.error("Sign in to continue");
+                    toast.error("Sign in and start customizing your list!");
                     return;
                   }
                   setMode(prev => (prev === 'delete' ? null : 'delete'));

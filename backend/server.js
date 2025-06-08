@@ -3,7 +3,7 @@ const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
-const authenticate = require('./authMiddleware');
+const { authenticate, authenticateOptional } = require('./authMiddleware');
 const admin = require('firebase-admin');
 
 // Firebase Admin SDK setup
@@ -67,16 +67,21 @@ async function start() {
 
 start();
 
-
 // --- ROUTES ---
 
 // Test route
 app.get('/api/protected', authenticate, (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   res.json({ message: 'You are authenticated!', user: req.user });
 });
 
 // Save/update authenticated user
 app.post('/api/save-user', authenticate, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   const { uid, email, name, picture } = req.user;
 
   try {
@@ -103,24 +108,39 @@ app.post('/api/save-user', authenticate, async (req, res) => {
   }
 });
 
-// Get cards for authenticated user
-app.get('/api/cards', authenticate, async (req, res) => {
-  const uid = req.user.uid;
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 100;
-  const skip = (page - 1) * limit;
-
+// GET cards with optional auth
+app.get("/api/cards", authenticateOptional, async (req, res) => {
   try {
-    const cards = await cardsCollection.find({ uid }).skip(skip).limit(limit).toArray();
+    let userId;
+
+    if (req.user) {
+      console.log("Authenticated user:", req.user.email);
+      userId = req.user.uid;
+    } else {
+      console.log("No user authenticated. Looking for template user.");
+      const templateUser = await usersCollection.findOne({ email: "joviantogodjali@gmail.com" });
+      if (!templateUser) {
+        console.log("Template user not found");
+        return res.status(404).json({ error: "Template user not found" });
+      }
+      console.log("Found template user:", templateUser.email);
+      userId = templateUser.uid;
+    }
+
+    const cards = await cardsCollection.find({ uid: userId }).toArray();
+    console.log(`Returning ${cards.length} cards for uid: ${userId}`);
     res.json(cards);
-  } catch (err) {
-    console.error('Error fetching cards:', err);
-    res.status(500).json({ error: 'Failed to fetch cards' });
+  } catch (error) {
+    console.error("Failed to fetch cards:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// Get single card
+// Get single card (strict auth)
 app.get('/api/cards/:id', authenticate, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   const uid = req.user.uid;
   const { id } = req.params;
 
@@ -137,8 +157,11 @@ app.get('/api/cards/:id', authenticate, async (req, res) => {
   }
 });
 
-// Create card
+// Create card (strict auth)
 app.post('/api/cards', authenticate, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   const uid = req.user.uid;
   const card = { ...req.body, uid, createdAt: new Date() };
 
@@ -151,8 +174,11 @@ app.post('/api/cards', authenticate, async (req, res) => {
   }
 });
 
-// Update card
+// Update card (strict auth)
 app.put('/api/cards/:id', authenticate, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   const uid = req.user.uid;
   const { id } = req.params;
   const updatedData = req.body;
@@ -177,8 +203,11 @@ app.put('/api/cards/:id', authenticate, async (req, res) => {
   }
 });
 
-// Delete card and Cloudinary image
+// Delete card (strict auth)
 app.delete('/api/cards/:id', authenticate, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   const uid = req.user.uid;
   const { id } = req.params;
 
@@ -203,71 +232,46 @@ app.delete('/api/cards/:id', authenticate, async (req, res) => {
   }
 });
 
-// Get categories for authenticated user
-app.get('/api/categories', authenticate, async (req, res) => {
-  const uid = req.user.uid;
-
+// Categories routes (strict auth)
+app.get('/api/categories', authenticateOptional, async (req, res) => {
   try {
+    let uid;
+
+    if (req.query.uid === 'template' || !req.user) {
+      const templateUser = await usersCollection.findOne({ email: "joviantogodjali@gmail.com" });
+      if (!templateUser) {
+        return res.status(404).json({ error: "Template user not found" });
+      }
+      uid = templateUser.uid;
+    } else {
+      uid = req.user.uid;
+    }
+
     const categories = await categoriesCollection.find({ uid }).toArray();
     res.json(categories);
-  } catch (err) {
-    console.error('Error fetching categories:', err);
-    res.status(500).json({ error: 'Failed to fetch categories' });
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ message: 'Server error fetching categories' });
   }
 });
 
-// Create category
 app.post('/api/categories', authenticate, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   const uid = req.user.uid;
   const { name } = req.body;
 
   if (!name || name.trim() === '') {
-    return res.status(400).json({ error: 'Name is required' });
+    return res.status(400).json({ error: 'Category name is required' });
   }
 
   try {
-    const category = { name: name.trim(), uid, createdAt: new Date() };
+    const category = { name, uid, createdAt: new Date() };
     const result = await categoriesCollection.insertOne(category);
     res.status(201).json({ _id: result.insertedId, ...category });
   } catch (err) {
     console.error('Error creating category:', err);
     res.status(500).json({ error: 'Failed to create category' });
-  }
-});
-
-// Update category
-app.put('/api/categories/:id', authenticate, async (req, res) => {
-  const uid = req.user.uid;
-  const { id } = req.params;
-  const { name } = req.body;
-
-  if (!ObjectId.isValid(id))
-    return res.status(400).json({ error: 'Invalid category ID' });
-
-  try {
-    const result = await categoriesCollection.updateOne(
-      { _id: new ObjectId(id), uid },
-      { $set: { name } }
-    );
-
-    if (result.matchedCount === 0)
-      return res.status(404).json({ error: 'Category not found or access denied' });
-
-    const updatedCategory = await categoriesCollection.findOne({ _id: new ObjectId(id), uid });
-    res.json(updatedCategory);
-  } catch (err) {
-    console.error('Error updating category:', err);
-    res.status(500).json({ error: 'Failed to update category' });
-  }
-});
-
-// Delete category
-app.delete('/api/categories/:id', authenticate, async (req, res) => {
-  try {
-    await db.collection('categories').deleteOne({ _id: new ObjectId(req.params.id), uid: req.user.uid });
-    res.status(200).json({ message: 'Category deleted' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to delete category' });
   }
 });

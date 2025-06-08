@@ -4,34 +4,26 @@ import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import type { User } from "firebase/auth";
 
 function Navbar() {
-  // State to hold current user info
   const [user, setUser] = useState<User | null>(null);
 
-  // Listen to auth state changes and update user state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
-
-    // Cleanup listener on unmount
     return () => unsubscribe();
   }, []);
 
-  // Sign in with Google popup
   const signInWithGoogle = async () => {
     try {
       await signInWithPopup(auth, provider);
-      // user state updates automatically via onAuthStateChanged listener
     } catch (error) {
       console.error("Sign-in error:", error);
     }
   };
 
-  // Sign out function
   const signOutUser = async () => {
     try {
       await signOut(auth);
-      // user state updates automatically via onAuthStateChanged listener
     } catch (error) {
       console.error("Sign-out error:", error);
     }
@@ -43,6 +35,13 @@ function Navbar() {
         <img src="/logo/logo_AK.png" alt="Logo" className="h-full" />
         <p className="ms-4.5 text-xl">MyGamesList</p>
       </a>
+
+      {/* Show template notice only when NOT signed in */}
+      {!user && (
+        <div className="flex items-center italic text-gray-600">
+          Welcome! You're viewing Akshiro's list. Sign in to create your own!
+        </div>
+      )}
 
       <div>
         {user ? (
