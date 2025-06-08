@@ -107,8 +107,18 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     const { name, value } = e.target;
 
     if (name === 'score') {
+      let numericValue = value === '' ? 0 : Number(value);
+
+      if (numericValue > 100) {
+        numericValue = 100;
+        toast.error('Score cannot exceed 100');
+      } else if (numericValue < 0) {
+        numericValue = 0;
+        toast.error('Score cannot be below 0');
+      }
+
       setFormData(prev =>
-        prev ? { ...prev, score: value === '' ? 0 : Number(value) } : null
+        prev ? { ...prev, score: numericValue } : null
       );
     } else if (name === 'description') {
       if (value.length > 100) {
@@ -446,21 +456,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
               type="number"
               name="score"
               value={formData.score}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-
-                if (value > 100) {
-                  toast.error('Score cannot exceed 100');
-                  return;
-                }
-
-                if (value < 0) {
-                  toast.error('Score cannot be below 0');
-                  return;
-                }
-
-                handleChange(e); // only call if within valid range
-              }}
+              onChange={handleChange} // no inline validation here
               min={0}
               max={100}
               className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)]"
