@@ -3,7 +3,7 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 
 const axiosAuth = axios.create({
-  baseURL: process.env.VITE_API_BASE_URL, // your backend URL
+  baseURL: import.meta.env.VITE_API_BASE_URL, // correct in Vite frontend
 });
 
 // Add a request interceptor to add Firebase ID token to headers
