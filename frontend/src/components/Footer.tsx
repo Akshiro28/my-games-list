@@ -7,7 +7,11 @@ function Footer() {
         </span>
         <ul className="flex flex-wrap items-center mt-3 text-sm font-medium text-gray-500 dark:text-gray-400 sm:mt-0">
           <li>
-            <a href="/" className="hover:underline">MyGamesList by Akshiro.</a>
+            <a href="/" className="hover:underline me-4">MyGamesList by Akshiro.</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/Akshiro28/react-tailwind-app" target="_blank" rel="noopener noreferrer" className="hover:underline">View project on GitHub →</a>
           </li>
         </ul>
         </div>

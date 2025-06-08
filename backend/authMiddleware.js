@@ -18,28 +18,21 @@ async function connectDB() {
 
 async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
-  console.log("Authorization header:", authHeader);
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    console.log("No token provided or wrong format");
     return res.status(401).json({ message: "No token provided" });
   }
 
   const idToken = authHeader.split("Bearer ")[1];
-  console.log("Extracted token:", idToken);
 
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    console.log("Token decoded successfully");
-
     req.user = {
       uid: decodedToken.uid,
       name: decodedToken.name || '',
       email: decodedToken.email || '',
       picture: decodedToken.picture || '',
     };
-
-    console.log("Authenticated user UID:", decodedToken.uid);
 
     // Use atomic upsert to save or update user info safely
     const db = await connectDB();

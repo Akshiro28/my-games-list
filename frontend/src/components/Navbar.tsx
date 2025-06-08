@@ -47,7 +47,12 @@ function Navbar() {
       <div>
         {user ? (
           <div className="flex items-center gap-4">
-            <span>Welcome, {user.displayName}</span>
+            <img
+              src={user.photoURL || "/default-avatar.png"}
+              alt={user.displayName || "User"}
+              className="w-8 h-8 rounded-full"
+            />
+            <span>{user.displayName}</span>
             <button
               onClick={signOutUser}
               className="bg-red-600 px-3 py-1 rounded hover:bg-red-500 cursor-pointer"
