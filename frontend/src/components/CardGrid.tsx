@@ -35,6 +35,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [mode, setMode] = useState<'edit' | 'delete' | null>(null);
   const { user } = useAuth();
+  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
   const [topGradientHeight, setTopGradientHeight] = useState<number>(0);
   const [bottomGradientHeight, setBottomGradientHeight] = useState<number>(0);
@@ -183,23 +184,6 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                     toast.error("Sign in and start customizing your list!");
                     return;
                   }
-                  setMode(prev => (prev === 'edit' ? null : 'edit'));
-                }}
-                className={`px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer
-                  ${mode === 'edit'
-                    ? 'border-blue-600 text-blue-600 bg-[#1B2541] hover:border-blue-500 hover:text-blue-500'
-                    : 'border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]'
-                  }`}
-              >
-                {mode === 'edit' ? 'Edit Mode On' : 'Edit Mode Off'}
-              </button>
-
-              <button
-                onClick={() => {
-                  if (!user) {
-                    toast.error("Sign in and start customizing your list!");
-                    return;
-                  }
                   onEditClick({
                     _id: '_new',
                     name: '',
@@ -212,23 +196,6 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                 className="px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]"
               >
                 + Add New Game
-              </button>
-
-              <button
-                onClick={() => {
-                  if (!user) {
-                    toast.error("Sign in and start customizing your list!");
-                    return;
-                  }
-                  setMode(prev => (prev === 'delete' ? null : 'delete'));
-                }}
-                className={`px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer
-                  ${mode === 'delete'
-                    ? 'border-red-600 text-red-600 bg-[#531621] hover:border-red-500 hover:text-red-500'
-                    : 'border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]'
-                  }`}
-              >
-                {mode === 'delete' ? 'Delete Mode On' : 'Delete Mode Off'}
               </button>
             </div>
           </div>
@@ -264,29 +231,47 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
               bgColor = 'bg-[var(--red15)]';
             }
 
+            const isHovered = hoveredCardId === card._id;
+
             return (
               <Card3D key={card._id ?? `card-${index}`}>
-                <div className="relative card rounded-lg overflow-hidden bg-[var(--thin)] hover:bg-[#2C3142] h-full">
-                  {mode === 'edit' && (
-                    <button
-                      onClick={() => onEditClick(card)}
-                      className="absolute top-0 left-0 z-1 p-2 rounded bg-[var(--thin)] hover:bg-[var(--thin-brighter)] cursor-pointer translate-[50%]"
-                      aria-label={`Edit ${card.name}`}
-                    >
-                      <img src={editIcon} alt="Edit" className="w-6 h-6" />
-                    </button>
-                  )}
-                  {mode === 'delete' && (
-                    <button
-                      onClick={() => setCardToDelete(card)}
-                      className="absolute top-0 left-0 z-1 p-2 rounded bg-red-600 hover:bg-red-500 cursor-pointer translate-[50%]"
-                      aria-label="Delete this game"
-                    >
-                      <img src={deleteIcon} alt="Delete" className="w-6 h-6" />
-                    </button>
+                <div
+                  onMouseEnter={() => setHoveredCardId(card._id)}
+                  onMouseLeave={() => setHoveredCardId(null)}
+                  className="relative card rounded-lg overflow-hidden bg-[var(--thin)] hover:bg-[#2C3142] h-full transition-all"
+                >
+                  {isHovered && (
+                    <div className="absolute top-4 left-4 z-1 flex gap-2">
+                      <button
+                        onClick={() => {
+                          if (!user) {
+                            toast.error("Sign in and start customizing your list!");
+                            return;
+                          }
+                          onEditClick(card);
+                        }}
+                        className="p-2 rounded bg-[var(--thin)] hover:bg-[var(--thin-brighter)] cursor-pointer"
+                        aria-label={`Edit ${card.name}`}
+                      >
+                        <img src={editIcon} alt="Edit" className="w-6 h-6" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (!user) {
+                            toast.error("Sign in and start customizing your list!");
+                            return;
+                          }
+                          setCardToDelete(card);
+                        }}
+                        className="p-2 rounded bg-red-600 hover:bg-red-500 cursor-pointer"
+                        aria-label="Delete this game"
+                      >
+                        <img src={deleteIcon} alt="Delete" className="w-6 h-6" />
+                      </button>
+                    </div>
                   )}
                   <img className="w-full h-36 object-cover" src={card.image} alt={`Cover of ${card.name}`} loading="lazy" />
-                  <div className="px-5 pt-4 pb-5">
+                  <div className="px-5 py-4">
                     <div className="flex w-full items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold">{card.name}</h3>
                       <span className={`px-2 rounded text-sm font-medium w-fit h-fit ${textColor} ${bgColor} ${borderColor}`}>

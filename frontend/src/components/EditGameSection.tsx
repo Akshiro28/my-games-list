@@ -286,10 +286,6 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       toast.error('Title cannot be empty');
       return;
     }
-    if (!formData.description.trim()) {
-      toast.error('Description cannot be empty');
-      return;
-    }
     if (formData.score < 1 || formData.score > 100) {
       toast.error('Score must be between 1 and 100');
       return;
@@ -389,7 +385,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         </h2>
 
         <form onSubmit={handleSubmit} className="w-160 max-w-full flex flex-col gap-6">
-          <label className="block">
+          <div className="block">
             <span className="mb-2 block">Title (100 characters max)</span>
             <input
               type="text"
@@ -399,10 +395,10 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
               placeholder="Enter game title..."
               className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] placeholder:italic"
             />
-          </label>
+          </div>
 
-          <label className="block">
-            <span className="mb-2 block">Description (100 characters max)</span>
+          <div className="block">
+            <span className="mb-2 block">(Optional) Description (100 characters max)</span>
             <textarea
               name="description"
               value={formData.description}
@@ -411,7 +407,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
               placeholder="Enter game description..."
               className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] placeholder:italic"
             />
-          </label>
+          </div>
 
           <input
             ref={inputRef}
@@ -421,7 +417,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
             style={{ display: 'none' }}
           />
 
-          <label className="block">
+          <div className="block">
             <span className="mb-2 block">Upload Image (10MB max)</span>
             <div
               onClick={handleClickDropzone}
@@ -454,9 +450,9 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                 </p>
               )}
             </div>
-          </label>
+          </div>
 
-          <label className="block">
+          <div className="block">
             <span className="mb-2 block">Score (1-100)</span>
             <input
               type="number"
@@ -467,7 +463,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
               max={100}
               className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)]"
             />
-          </label>
+          </div>
 
           <fieldset>
             <legend className="mb-2 block">Categories (multiple select)</legend>
