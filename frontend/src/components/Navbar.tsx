@@ -2,13 +2,27 @@ import { useEffect, useState, useRef } from "react";
 import { auth, provider } from "../firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import type { User } from "firebase/auth";
-import { useDebounce } from "../hooks/useDebounce"; // Adjust path if needed
+import { useDebounce } from "../hooks/useDebounce";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-function Navbar() {
+interface NavbarProps {
+  viewedUsername?: string | null;
+}
+
+interface BackendUser {
+  uid: string;
+  email: string;
+  name?: string;
+  picture?: string;
+  username?: string;
+  // add any other fields your backend returns
+}
+
+function Navbar({ viewedUsername }: NavbarProps) {
+  const usernameFromUrl: string | undefined = window.location.pathname.split("/")[1];
   const [user, setUser] = useState<User | null>(null);
-  const [backendUser, setBackendUser] = useState<any>(null);
+  const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
   const [username, setUsername] = useState("");
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -19,6 +33,8 @@ function Navbar() {
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   type UsernameStatus = "available" | "taken" | "checking" | "current" | "empty" | "tooShort" | null;
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>(null);
+  const rawDisplayUsername = viewedUsername ?? usernameFromUrl ?? "";
+  const displayUsername = rawDisplayUsername.trim() !== "" ? rawDisplayUsername : "Akshiro";
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -228,7 +244,19 @@ function Navbar() {
 
         {!user && !loading && (
           <div className="flex items-center text-sm italic text-[var(--text-thin)]">
-            Welcome! You're viewing Akshiro's list. Sign in to create your own!
+            Welcome! You're viewing {displayUsername}'s game list. Sign in to create your own!
+          </div>
+        )}
+
+        {user && backendUser?.username !== displayUsername && (
+          <div className="flex items-center text-sm italic text-[var(--text-thin)] gap-1">
+            You're viewing <span className="font-bold">&nbsp;{displayUsername}</span>'s game list.{" "}
+            <a
+              href={`/${backendUser?.username}`}
+              className="text-blue-600 underline hover:text-blue-600 cursor-pointer"
+            >
+              Go to my list &rarr;
+            </a>
           </div>
         )}
 

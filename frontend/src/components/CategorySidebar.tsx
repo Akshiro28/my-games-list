@@ -12,6 +12,7 @@ type CategorySidebarProps = {
   setSelectedCategory: (categoryId: string | null) => void;
   onAddCategoryClick: () => void;
   user: any;
+  readOnly?: boolean;
 };
 
 function CategorySidebar({ categories, selectedCategory, setSelectedCategory, onAddCategoryClick, user }: CategorySidebarProps) {

@@ -113,9 +113,22 @@ app.get("/api/cards", authenticateOptional, async (req, res) => {
   try {
     let userId;
 
-    if (req.user) {
+    // 1. Check if `username` query param is provided
+    if (req.query.username) {
+      const user = await usersCollection.findOne({ username: req.query.username });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      userId = user.uid;
+    }
+
+    // 2. If logged in, use logged-in user UID
+    else if (req.user) {
       userId = req.user.uid;
-    } else {
+    }
+
+    // 3. Fallback to template user
+    else {
       const templateUser = await usersCollection.findOne({ email: "joviantogodjali@gmail.com" });
       if (!templateUser) {
         return res.status(404).json({ error: "Template user not found" });
@@ -292,13 +305,26 @@ app.get('/api/categories', authenticateOptional, async (req, res) => {
   try {
     let uid;
 
-    if (req.query.uid === 'template' || !req.user) {
+    // 1. Use `username` if provided
+    if (req.query.username) {
+      const user = await usersCollection.findOne({ username: req.query.username });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      uid = user.uid;
+    }
+
+    // 2. Use template UID if `uid=template` or no auth
+    else if (req.query.uid === 'template' || !req.user) {
       const templateUser = await usersCollection.findOne({ email: "joviantogodjali@gmail.com" });
       if (!templateUser) {
         return res.status(404).json({ error: "Template user not found" });
       }
       uid = templateUser.uid;
-    } else {
+    }
+
+    // 3. Fallback to authenticated UID
+    else {
       uid = req.user.uid;
     }
 

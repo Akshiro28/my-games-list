@@ -13,96 +13,72 @@ import type { User } from 'firebase/auth';
 import type { Category } from '../components/CategorySidebar';
 import type { Card } from '../components/CardGrid';
 
-function MainLayout() {
+type MainLayoutProps = {
+  username?: string | null;
+  readOnly?: boolean;
+  externalCards?: Card[] | null;
+  externalCategories?: Category[] | null;
+};
+
+function MainLayout({
+  username = null,
+  readOnly = false,
+  externalCards = null,
+  externalCategories = null,
+}: MainLayoutProps) {
   const [user, setUser] = useState<User | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [cards, setCards] = useState<Card[]>([]);
+  const [categories, setCategories] = useState<Category[]>(externalCategories ?? []);
+  const [cards, setCards] = useState<Card[]>(externalCards ?? []);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [editingCategory, setEditingCategory] = useState(false);
-  const [isTemplateMode, setIsTemplateMode] = useState(false); // <-- NEW
+  const [isTemplateMode, setIsTemplateMode] = useState(false);
 
-  // Listen for Firebase Auth state changes
   useEffect(() => {
+    if (externalCards && externalCategories) return;
+    if (username) return; // profile page mode
+
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      setIsTemplateMode(!firebaseUser); // <-- update template mode
+      setIsTemplateMode(!firebaseUser);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [externalCards, externalCategories, username]);
 
-  // Fetch categories and cards whenever auth changes
   useEffect(() => {
-    const mode = user ? 'user' : 'template';
-    refreshCategories(mode);
-    fetchCards(mode);
-  }, [user]);
+    if (externalCards && externalCategories) return;
 
-  // --- CATEGORY HANDLING ---
-
-  async function refreshCategories(mode: 'template' | 'user' = isTemplateMode ? 'template' : 'user') {
-    try {
-      const res = await axiosAuth.get<Category[]>(
-        mode === 'template'
-          ? `/api/categories?uid=template`
-          : '/api/categories'
-      );
-      setCategories(res.data);
-    } catch (err) {
-      console.error('Failed to fetch categories:', err);
+    if (username) {
+      fetchCardsAndCategories('profile');
+    } else {
+      // Always load template mode when no username
+      fetchCardsAndCategories('template');
     }
-  }
+  }, [username]);
 
-  function openCategoryEditor() {
-    setEditingCategory(true);
-  }
-
-  function closeCategoryEditor() {
-    setEditingCategory(false);
-  }
-
-  async function handleDeleteCategory(id: string) {
-    const toastId = toast.loading('Deleting category...');
+  async function fetchCardsAndCategories(mode: 'user' | 'template' | 'profile') {
     try {
-      const res = await axiosAuth.delete(`/api/categories/${id}`);
-      if (res.status === 200) {
-        await refreshCategories();
-        toast.success('Category deleted!', { id: toastId });
-      } else {
-        toast.error('Failed to delete category.', { id: toastId });
-      }
-    } catch (err: any) {
-      console.error('Error deleting category:', err);
-      if (err.response?.status === 404) {
-        toast.error('Category not found on server.', { id: toastId });
-      } else {
-        toast.error('Error deleting category.', { id: toastId });
-      }
-    }
-  }
-
-  function handleCategorySave(closeAfterSave = true) {
-    refreshCategories();
-    if (closeAfterSave) {
-      closeCategoryEditor();
-    }
-  }
-
-  // --- CARD (GAME) HANDLING ---
-
-  async function fetchCards(mode: 'template' | 'user' = isTemplateMode ? 'template' : 'user') {
-    try {
-      const res = await axiosAuth.get<Card[]>(
-        mode === 'template'
-          ? `/api/cards?uid=template`
+      const cardsRes = await axiosAuth.get<Card[]>(
+        mode === 'profile'
+          ? `/api/cards?username=${username}`
+          : mode === 'template'
+          ? '/api/cards?uid=template'
           : '/api/cards'
       );
-      setCards(res.data);
+      const categoriesRes = await axiosAuth.get<Category[]>(
+        mode === 'profile'
+          ? `/api/categories?username=${username}`
+          : mode === 'template'
+          ? '/api/categories?uid=template'
+          : '/api/categories'
+      );
+      setCards(cardsRes.data);
+      setCategories(categoriesRes.data);
     } catch (err) {
-      console.error('Failed to fetch cards:', err);
+      console.error('Failed to fetch cards or categories:', err);
     }
   }
 
@@ -111,6 +87,8 @@ function MainLayout() {
     : cards;
 
   async function handleEditClick(card: Card) {
+    if (readOnly) return;
+
     if (card._id === '-1' || card._id === '_new') {
       setEditingCard(card);
       setIsNew(true);
@@ -131,11 +109,13 @@ function MainLayout() {
   }
 
   function handleSave() {
-    fetchCards();
+    fetchCardsAndCategories(isTemplateMode ? 'template' : 'user');
     closeEditSection();
   }
 
   async function handleDelete(id: string) {
+    if (readOnly) return;
+
     const toastId = toast.loading('Deleting game entry...');
     try {
       const res = await axiosAuth.delete(`/api/cards/${id}`);
@@ -151,7 +131,43 @@ function MainLayout() {
     }
   }
 
-  // --- RENDER ---
+  function openCategoryEditor() {
+    if (readOnly) return;
+    setEditingCategory(true);
+  }
+
+  function closeCategoryEditor() {
+    setEditingCategory(false);
+  }
+
+  async function handleDeleteCategory(id: string) {
+    if (readOnly) return;
+
+    const toastId = toast.loading('Deleting category...');
+    try {
+      const res = await axiosAuth.delete(`/api/categories/${id}`);
+      if (res.status === 200) {
+        fetchCardsAndCategories(isTemplateMode ? 'template' : 'user');
+        toast.success('Category deleted!', { id: toastId });
+      } else {
+        toast.error('Failed to delete category.', { id: toastId });
+      }
+    } catch (err: any) {
+      console.error('Error deleting category:', err);
+      if (err.response?.status === 404) {
+        toast.error('Category not found on server.', { id: toastId });
+      } else {
+        toast.error('Error deleting category.', { id: toastId });
+      }
+    }
+  }
+
+  function handleCategorySave(closeAfterSave = true) {
+    fetchCardsAndCategories(isTemplateMode ? 'template' : 'user');
+    if (closeAfterSave) {
+      closeCategoryEditor();
+    }
+  }
 
   return (
     <>
@@ -168,11 +184,17 @@ function MainLayout() {
               setSelectedCategory={setSelectedCategory}
               onAddCategoryClick={openCategoryEditor}
               user={user}
+              readOnly={readOnly}
             />
           </div>
 
           <div className="relative flex-1 overflow-hidden">
             <div className="card-grid absolute top-0 left-0 w-full h-full">
+              {/* {username && (
+                <h2 className="text-xl font-bold px-4 pt-4">
+                  Games shared by {username}
+                </h2>
+              )} */}
               <CardGrid
                 cards={filteredCards}
                 onEditClick={handleEditClick}
@@ -183,7 +205,7 @@ function MainLayout() {
         </div>
 
         {/* Edit Game Section */}
-        {!editingCategory && (
+        {!editingCategory && !readOnly && (
           <div
             className={`edit-section container absolute top-full w-full h-full bg-[var(--background)] transition-all duration-800 ease-in-out ${
               editingCard ? 'editing-active' : 'editing-inactive'
@@ -201,21 +223,17 @@ function MainLayout() {
         )}
 
         {/* Edit Category Section */}
-        {!editingCard && (
+        {!editingCard && editingCategory && !readOnly && (
           <div
-            className={`edit-section container absolute top-full w-full h-full bg-[var(--background)] transition-all duration-800 ease-in-out ${
-              editingCategory ? 'editing-active' : 'editing-inactive'
-            }`}
+            className={`edit-section container absolute top-full w-full h-full bg-[var(--background)] transition-all duration-800 ease-in-out editing-active`}
             aria-modal="true"
             role="dialog"
           >
-            {editingCategory && (
-              <EditCategorySection
-                onClose={closeCategoryEditor}
-                onSave={() => handleCategorySave(false)}
-                onDeleteCategory={handleDeleteCategory}
-              />
-            )}
+            <EditCategorySection
+              onClose={closeCategoryEditor}
+              onSave={() => handleCategorySave(false)}
+              onDeleteCategory={handleDeleteCategory}
+            />
           </div>
         )}
       </div>
