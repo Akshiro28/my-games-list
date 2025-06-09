@@ -35,6 +35,8 @@ function Navbar({ viewedUsername }: NavbarProps) {
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>(null);
   const rawDisplayUsername = viewedUsername ?? usernameFromUrl ?? "";
   const displayUsername = rawDisplayUsername.trim() !== "" ? rawDisplayUsername : "Akshiro";
+  const [backendUserLoading, setBackendUserLoading] = useState(true);
+  const isUserFullyLoaded = !backendUserLoading && user !== null;
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -51,9 +53,9 @@ function Navbar({ viewedUsername }: NavbarProps) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
+        setUser(firebaseUser);
+        setBackendUserLoading(true);
         (async () => {
-          setUser(firebaseUser);
-          setLoading(true);
           try {
             const idToken = await firebaseUser.getIdToken();
             const res = await fetch(`${API_BASE_URL}/api/users/get-by-uid?uid=${firebaseUser.uid}`, {
@@ -72,14 +74,14 @@ function Navbar({ viewedUsername }: NavbarProps) {
             setBackendUser(null);
             setShowUsernamePrompt(true);
           } finally {
-            setLoading(false);
+            setBackendUserLoading(false);
           }
         })();
       } else {
         setUser(null);
         setBackendUser(null);
         setShowUsernamePrompt(false);
-        setLoading(false);
+        setBackendUserLoading(false);
       }
     });
     return () => unsubscribe();
@@ -112,7 +114,11 @@ function Navbar({ viewedUsername }: NavbarProps) {
     let isCancelled = false;
 
     if (!debouncedUsername) {
-      setUsernameStatus("empty");
+      if (isEditingUsername) {
+        setUsernameStatus(null); // Stay quiet during editing
+      } else {
+        setUsernameStatus("empty");
+      }
       return;
     }
 
@@ -242,13 +248,13 @@ function Navbar({ viewedUsername }: NavbarProps) {
           <p className="ms-4.5 text-xl">MyGamesList</p>
         </a>
 
-        {!user && !loading && (
+        {!user && isUserFullyLoaded && (
           <div className="flex items-center text-sm italic text-[var(--text-thin)]">
             Welcome! You're viewing {displayUsername}'s game list. Sign in to create your own!
           </div>
         )}
 
-        {user && backendUser?.username !== displayUsername && (
+        {user && isUserFullyLoaded && backendUser?.username !== displayUsername && (
           <div className="flex items-center text-sm italic text-[var(--text-thin)] gap-1">
             You're viewing <span className="font-bold">&nbsp;{displayUsername}</span>'s game list.{" "}
             <a
@@ -276,22 +282,41 @@ function Navbar({ viewedUsername }: NavbarProps) {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      setShowDropdown(false);
+                      // Redirect to user's list page
+                      window.location.href = `/${backendUser?.username}`;
+                    }}
+                    className="px-3 py-2 hover:bg-[var(--thin-brighter)] text-left cursor-pointer"
+                  >
+                    My Games List
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setUsername(backendUser?.username || "");
                       setIsEditingUsername(true);
                       setShowUsernamePrompt(true);
                       setShowDropdown(false);
                     }}
-                    className="px-3 py-2 hover:bg-[var(--thin-brighter)] text-left"
+                    className="px-3 py-2 hover:bg-[var(--thin-brighter)] text-left cursor-pointer"
                   >
                     Change username
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); signOutUser(); }} className="px-3 py-2 hover:bg-[var(--thin-brighter)] text-left text-red-600">Sign out</button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      signOutUser();
+                    }}
+                    className="px-3 py-2 hover:bg-[var(--thin-brighter)] text-left text-red-600 cursor-pointer"
+                  >
+                    Sign out
+                  </button>
                 </div>
               )}
             </div>
           ) : (
             !loading && (
-              <button onClick={signInWithGoogle} className="bg-blue-600 px-3 py-1 rounded hover:bg-blue-500">
+              <button onClick={signInWithGoogle} className="bg-blue-600 px-3 py-1 rounded hover:bg-blue-500 cursor-pointer">
                 Sign in with Google
               </button>
             )
