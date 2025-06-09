@@ -347,3 +347,72 @@ app.post('/api/images/delete', authenticate, async (req, res) => {
   }
 });
 
+app.get('/api/users/get-by-uid', async (req, res) => {
+  try {
+    const { uid } = req.query;
+    if (!uid) return res.status(400).json({ message: "Missing uid" });
+
+    console.log("Looking for user with uid:", uid);
+    const user = await db.collection('users').findOne({ uid });
+    console.log("Found user:", user);
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (err) {
+    console.error("GET /api/users/get-by-uid error:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// Create a new user with username normalized to lowercase
+app.post('/api/users', authenticate, async (req, res) => {
+  try {
+    const { uid, email, name, picture, username } = req.body;
+
+    if (!uid || !username) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Check if username already exists in DB
+    const existing = await db.collection('users').findOne({ username });
+    if (existing) {
+      return res.status(409).json({ message: "Username already taken" });
+    }
+
+    // Insert or update user
+    const user = await db.collection('users').updateOne(
+      { uid },
+      { $set: { email, name, picture, username } },
+      { upsert: true }
+    );
+
+    res.json({ uid, email, name, picture, username });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Check if username is taken (case-insensitive)
+app.get('/api/users/check-username', async (req, res) => {
+  const username = req.query.username;
+  if (!username) {
+    return res.status(400).json({ error: 'Username query parameter is required' });
+  }
+
+  try {
+    // Case-insensitive search using regex
+    const user = await usersCollection.findOne({ 
+      username: { $regex: `^${username}$`, $options: 'i' }
+    });
+    
+    if (user) {
+      return res.json({ exists: true });
+    } else {
+      return res.json({ exists: false });
+    }
+  } catch (error) {
+    console.error('Error checking username:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
