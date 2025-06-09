@@ -386,7 +386,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
         <form onSubmit={handleSubmit} className="w-160 max-w-full flex flex-col gap-6">
           <div className="block">
-            <span className="mb-2 block">Title (100 characters max)</span>
+            <span className="mb-2 block">Title <span className="text-[var(--thin-brighter-brighter)]">(100 characters max)</span></span>
             <input
               type="text"
               name="name"
@@ -398,7 +398,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           </div>
 
           <div className="block">
-            <span className="mb-2 block">(Optional) Description (100 characters max)</span>
+            <span className="mb-2 block">(Optional) Description <span className="text-[var(--thin-brighter-brighter)]">(100 characters max)</span></span>
             <textarea
               name="description"
               value={formData.description}
@@ -418,7 +418,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           />
 
           <div className="block">
-            <span className="mb-2 block">Upload Image (10MB max)</span>
+            <span className="mb-2 block">Upload Image <span className="text-[var(--thin-brighter-brighter)]">(10MB max)</span></span>
             <div
               onClick={handleClickDropzone}
               onDragOver={handleDragOver}
@@ -453,7 +453,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           </div>
 
           <div className="block">
-            <span className="mb-2 block">Score (1-100)</span>
+            <span className="mb-2 block">Score <span className="text-[var(--thin-brighter-brighter)]">(1-100)</span></span>
             <input
               type="number"
               name="score"
@@ -466,7 +466,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           </div>
 
           <fieldset>
-            <legend className="mb-2 block">Categories (multiple select)</legend>
+            <legend className="mb-2 block">(Optional) Categories <span className="text-[var(--thin-brighter-brighter)]">(multiple select)</span></legend>
 
             {!Array.isArray(availableCategories) || availableCategories.length === 0 ? (
               <p className="italic text-[var(--thin-brighter)]">

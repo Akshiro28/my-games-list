@@ -209,7 +209,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
         ) : (
 
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 overflow-x-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 overflow-hidden">
           {filteredCards.map((card, index) => {
             let textColor = '';
             let bgColor = '';
@@ -271,13 +271,15 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                   )}
                   <img className="w-full h-36 object-cover" src={card.image} alt={`Cover of ${card.name}`} loading="lazy" />
                   <div className="px-5 py-4">
-                    <div className="flex w-full items-center justify-between mb-2">
+                    <div className="flex w-full items-center justify-between">
                       <h3 className="text-lg font-semibold">{card.name}</h3>
                       <span className={`px-2 rounded text-sm font-medium w-fit h-fit ${textColor} ${bgColor} ${borderColor}`}>
                         {card.score}
                       </span>
                     </div>
-                    <p className="text-sm text-[var(--text-thin)]">{card.description}</p>
+                    {card.description && (
+                      <p className="text-sm text-[var(--text-thin)] mt-2">{card.description}</p>
+                    )}
                   </div>
                 </div>
               </Card3D>

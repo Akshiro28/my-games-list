@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { auth, provider } from "../firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import type { User } from "firebase/auth";
@@ -12,10 +12,29 @@ function Navbar() {
   const [username, setUsername] = useState("");
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // For username availability check:
-  const [usernameStatus, setUsernameStatus] = useState<"available" | "taken" | "checking" | null>(null);
+  const [usernameStatus, setUsernameStatus] = useState<
+    "available" | "taken" | "checking" | null
+  >(null);
   const debouncedUsername = useDebounce(username.trim(), 600);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const usernameInputRef = useRef<HTMLInputElement>(null);
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Auth state handling + fetch backend user info
   useEffect(() => {
@@ -67,6 +86,16 @@ function Navbar() {
     return () => unsubscribe();
   }, []);
 
+  // Focus input & move cursor to end when prompt opens
+  useEffect(() => {
+    if (showUsernamePrompt && usernameInputRef.current) {
+      const input = usernameInputRef.current;
+      input.focus();
+      const length = input.value.length;
+      input.setSelectionRange(length, length);
+    }
+  }, [showUsernamePrompt]);
+
   // Check username availability when debouncedUsername changes
   useEffect(() => {
     if (!showUsernamePrompt) return;
@@ -86,7 +115,9 @@ function Navbar() {
         const idToken = await user.getIdToken();
 
         const res = await fetch(
-          `${API_BASE_URL}/api/users/check-username?username=${encodeURIComponent(debouncedUsername)}`,
+          `${API_BASE_URL}/api/users/check-username?username=${encodeURIComponent(
+            debouncedUsername
+          )}`,
           {
             headers: {
               Authorization: `Bearer ${idToken}`,
@@ -124,6 +155,7 @@ function Navbar() {
       setUsername("");
       setBackendUser(null);
       setUsernameStatus(null);
+      setShowDropdown(false);
     } catch (error) {
       console.error("Sign-out error:", error);
     }
@@ -188,7 +220,7 @@ function Navbar() {
 
   return (
     <>
-      <nav className="container fixed top-4 w-[calc(100%-32px)] translate-x-[-50%] left-1/2 bg-[var(--thin)] rounded-lg h-18 flex justify-between py-5 px-10">
+      <nav className="container fixed top-4 w-[calc(100%-32px)] translate-x-[-50%] left-1/2 bg-[var(--thin)] rounded-lg h-18 flex justify-between py-5 px-10 z-9">
         <a className="flex items-center" href="/">
           <img src="/logo/logo_AK.png" alt="Logo" className="h-full" />
           <p className="ms-4.5 text-xl">MyGamesList</p>
@@ -202,19 +234,45 @@ function Navbar() {
 
         <div>
           {user ? (
-            <div className="flex items-center gap-4">
-              <img
-                src={user.photoURL || "/default-avatar.png"}
-                alt={user.displayName || "User"}
-                className="w-8 h-8 rounded-full"
-              />
-              <span>{backendUser?.username || user.displayName}</span>
-              <button
-                onClick={signOutUser}
-                className="bg-red-600 px-3 py-1 rounded hover:bg-red-500 cursor-pointer"
-              >
-                Sign Out
-              </button>
+            <div
+              className="relative cursor-pointer select-none translate-y-[-8px] translate-x-3"
+              ref={dropdownRef}
+              onClick={() => setShowDropdown((prev) => !prev)}
+            >
+              <div className="flex items-center gap-3 hover:bg-[var(--thin-brighter)] py-2 px-3 rounded-md">
+                <img
+                  src={user.photoURL || "/default-avatar.png"}
+                  alt={user.displayName || "User"}
+                  className="w-8 h-8 rounded-full"
+                />
+                <span>{backendUser?.username || user.displayName}</span>
+              </div>
+
+              {showDropdown && (
+                <div className="absolute top-full right-0 mt-2 w-43 bg-[var(--thin)] border-2 border-[var(--thin-brighter)] rounded-md z-9 flex flex-col overflow-hidden">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setUsername(backendUser?.username || ""); // fill input with current username
+                      setIsEditingUsername(true);               // <--- indicate it's edit mode
+                      setShowUsernamePrompt(true);
+                      setShowDropdown(false);
+                    }}
+                    className="px-3 py-2 hover:bg-[var(--thin-brighter)] text-left cursor-pointer"
+                  >
+                    Change username
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      signOutUser();
+                    }}
+                    className="px-3 py-2 hover:bg-[var(--thin-brighter)] text-left cursor-pointer text-red-600"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             !loading && (
@@ -231,25 +289,13 @@ function Navbar() {
 
       {showUsernamePrompt && (
         <div className="fixed inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.32)] backdrop-blur-xs z-9">
-          <div className="bg-[var(--background)] p-6 rounded max-w-sm w-full">
-            <h2 className="text-lg font-semibold mb-4">Choose a username</h2>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
-              className="border p-2 w-full rounded"
-              disabled={loading}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && username.trim() && usernameStatus === "available") {
-                  handleSaveUsername();
-                }
-              }}
-            />
+          <div className="bg-[var(--background)] p-6 rounded-md max-w-120 w-full border-2 border-[var(--thin-brighter)] large-shadow-darker">
+            <h2 className="text-3xl font-semibold mb-6">
+              {isEditingUsername ? "Edit username" : "Choose a username"}
+            </h2>
 
-            {/* Username status message */}
             <p
-              className={`mt-2 text-sm ${
+              className={`mb-2 text-sm ${
                 usernameStatus === "taken"
                   ? "text-red-600"
                   : usernameStatus === "available"
@@ -266,23 +312,43 @@ function Navbar() {
                 : ""}
             </p>
 
-            <div className="flex justify-between mt-4">
+            <input
+              ref={usernameInputRef}
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+              className="border-2 border-[var(--thin)] py-2 px-3 w-full rounded-md hover:border-[var(--thin-brighter)] focus:outline-none focus:border-[var(--thin-brighter)]"
+              disabled={loading}
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  username.trim() &&
+                  usernameStatus === "available"
+                ) {
+                  handleSaveUsername();
+                }
+              }}
+            />
+
+            <div className="flex justify-between mt-6">
               <button
-                onClick={signOutUser}
+                onClick={() => {
+                  setShowUsernamePrompt(false);
+                  setIsEditingUsername(false);
+                }}
                 disabled={loading}
-                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+                className="bg-[var(--thin)] text-white px-4 py-2 rounded-md hover:bg-[var(--thin-brighter)] cursor-pointer"
               >
-                Cancel
+                &larr; Go back
               </button>
 
               <button
                 onClick={handleSaveUsername}
                 disabled={
-                  !username.trim() ||
-                  loading ||
-                  usernameStatus !== "available"
+                  !username.trim() || loading || usernameStatus !== "available"
                 }
-                className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md disabled:opacity-50 cursor-pointer disabled:cursor-default disabled:hover:bg-blue-600"
               >
                 {loading ? "Saving..." : "Save Username"}
               </button>
