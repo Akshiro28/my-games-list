@@ -269,7 +269,7 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                       </button>
                     </div>
                   )}
-                  <img className="w-full h-36 object-cover" src={card.image} alt={`Cover of ${card.name}`} loading="lazy" />
+                  <img className="w-full h-36 object-cover" src={card.image} alt={`Cover of ${card.name}`} />
                   <div className="px-5 py-4">
                     <div className="flex w-full items-center justify-between">
                       <h3 className="text-lg font-semibold">{card.name}</h3>
