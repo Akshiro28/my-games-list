@@ -18,6 +18,7 @@ type MainLayoutProps = {
   readOnly?: boolean;
   externalCards?: Card[] | null;
   externalCategories?: Category[] | null;
+  forceTemplateMode?: boolean;
 };
 
 function MainLayout({
@@ -25,6 +26,7 @@ function MainLayout({
   readOnly = false,
   externalCards = null,
   externalCategories = null,
+  forceTemplateMode = false,
 }: MainLayoutProps) {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -34,21 +36,19 @@ function MainLayout({
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [editingCategory, setEditingCategory] = useState(false);
-  const [isTemplateMode, setIsTemplateMode] = useState(false);
   const [userProfile, setUserProfile] = useState<{ username: string } | null>(null);
+
+  const isTemplateMode = !username;
 
   useEffect(() => {
     if (externalCards && externalCategories) {
-      console.log('[useEffect:auth] Using external data, skipping auth listener');
       setAuthReady(true);
       return;
     }
 
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      console.log('[Firebase] onAuthStateChanged triggered:', firebaseUser);
       setUser(firebaseUser);
-      setIsTemplateMode(!firebaseUser);
       setAuthReady(true);
     });
 
@@ -57,42 +57,37 @@ function MainLayout({
 
   useEffect(() => {
     if (externalCards && externalCategories) return;
-    if (!authReady) {
-      console.log('[useEffect:dataFetch] Waiting for auth to load...');
-      return;
-    }
+    if (!authReady) return;
 
-    if (username) {
-      console.log('[useEffect:profile] Fetching shared profile data for:', username);
-      fetchCardsAndCategories('profile');
-    } else if (!user) {
-      console.log('[useEffect:template] Fetching template data...');
+    if (forceTemplateMode) {
+      console.log('[MainLayout] Forcing template mode');
       fetchCardsAndCategories('template');
-    } else {
-      console.log('[useEffect:user] Fetching user data...');
+    } else if (username) {
+      console.log('[MainLayout] Loading profile for', username);
+      fetchCardsAndCategories('profile');
+    } else if (user) {
+      console.log('[MainLayout] Loading signed-in user');
       fetchCardsAndCategories('user');
+    } else {
+      console.log('[MainLayout] Loading fallback template');
+      fetchCardsAndCategories('template');
     }
-  }, [username, user, authReady, externalCards, externalCategories]);
+  }, [username, user, authReady, externalCards, externalCategories, forceTemplateMode]);
 
   async function fetchCardsAndCategories(mode: 'user' | 'template' | 'profile') {
+    console.log(`[CardGrid] Loading ${mode} data...`);
+
     try {
-      console.log(`[fetchCardsAndCategories] Fetching data for mode: ${mode}`);
       const cardsRes = await axiosAuth.get<Card[]>(
         mode === 'profile'
           ? `/api/cards?username=${username}`
-          : mode === 'template'
-          ? '/api/cards?uid=template'
-          : '/api/cards'
+          : '/api/cards?uid=template'
       );
       const categoriesRes = await axiosAuth.get<Category[]>(
         mode === 'profile'
           ? `/api/categories?username=${username}`
-          : mode === 'template'
-          ? '/api/categories?uid=template'
-          : '/api/categories'
+          : '/api/categories?uid=template'
       );
-      console.log('[fetchCardsAndCategories] Cards:', cardsRes.data);
-      console.log('[fetchCardsAndCategories] Categories:', categoriesRes.data);
       setCards(cardsRes.data);
       setCategories(categoriesRes.data);
     } catch (err) {
@@ -127,8 +122,7 @@ function MainLayout({
   }
 
   function handleSave() {
-    console.log('[handleSave] Refreshing data after save...');
-    fetchCardsAndCategories(isTemplateMode ? 'template' : 'user');
+    fetchCardsAndCategories(isTemplateMode ? 'template' : 'profile');
     closeEditSection();
   }
 
@@ -151,12 +145,7 @@ function MainLayout({
   }
 
   function openCategoryEditor() {
-    console.log('user:', user);
-    console.log('username:', username);
-    console.log('displayName:', user?.displayName);
-
     if (!authReady) {
-      console.log('[openCategoryEditor] Auth not ready yet');
       toast('Loading... Please wait.');
       return;
     }
@@ -167,11 +156,7 @@ function MainLayout({
       userProfile &&
       userProfile.username.trim().toLowerCase() === username.trim().toLowerCase();
 
-    console.log('isOwnProfile:', isOwnProfile);
-
     const allowEdit = !readOnly && (isOwnProfile || (!username && user));
-
-    console.log('allowEdit:', allowEdit);
 
     if (!allowEdit) {
       toast('Sign in and start customizing your list!');
@@ -192,8 +177,7 @@ function MainLayout({
     try {
       const res = await axiosAuth.delete(`/api/categories/${id}`);
       if (res.status === 200) {
-        console.log('[handleDeleteCategory] Deleted successfully');
-        fetchCardsAndCategories(isTemplateMode ? 'template' : 'user');
+        fetchCardsAndCategories(isTemplateMode ? 'template' : 'profile');
         toast.success('Category deleted!', { id: toastId });
       } else {
         toast.error('Failed to delete category.', { id: toastId });
@@ -209,8 +193,7 @@ function MainLayout({
   }
 
   function handleCategorySave(closeAfterSave = true) {
-    console.log('[handleCategorySave] Refreshing categories after save...');
-    fetchCardsAndCategories(isTemplateMode ? 'template' : 'user');
+    fetchCardsAndCategories(isTemplateMode ? 'template' : 'profile');
     if (closeAfterSave) {
       closeCategoryEditor();
     }
@@ -221,7 +204,7 @@ function MainLayout({
       if (!user || !authReady) return;
 
       try {
-        const res = await axiosAuth.get('/api/users/me'); // Assumes backend route returns user's info
+        const res = await axiosAuth.get('/api/users/me');
         setUserProfile(res.data);
       } catch (err) {
         console.error('[fetchUserProfile] Failed:', err);
@@ -232,7 +215,7 @@ function MainLayout({
   }, [user, authReady]);
 
   if (!authReady && !externalCards && !externalCategories) {
-    return null; // or a spinner
+    return null; // or spinner
   }
 
   return (

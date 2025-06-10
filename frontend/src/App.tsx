@@ -14,7 +14,7 @@ function App() {
     <BrowserRouter>
       <Navbar />
       <Routes>
-        <Route path="/" element={<MainLayout />} />
+        <Route path="/" element={<MainLayout forceTemplateMode={true} />} />
         <Route path="/:username" element={<UserProfilePage />} />
       </Routes>
       <Footer />

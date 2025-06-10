@@ -113,8 +113,17 @@ app.get("/api/cards", authenticateOptional, async (req, res) => {
   try {
     let userId;
 
+    // 0. Explicit template override
+    if (req.query.uid === "template") {
+      const templateUser = await usersCollection.findOne({ email: "joviantogodjali@gmail.com" });
+      if (!templateUser) {
+        return res.status(404).json({ error: "Template user not found" });
+      }
+      userId = templateUser.uid;
+    }
+
     // 1. Check if `username` query param is provided
-    if (req.query.username) {
+    else if (req.query.username) {
       const user = await usersCollection.findOne({ username: req.query.username });
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -305,17 +314,8 @@ app.get('/api/categories', authenticateOptional, async (req, res) => {
   try {
     let uid;
 
-    // 1. Use `username` if provided
-    if (req.query.username) {
-      const user = await usersCollection.findOne({ username: req.query.username });
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      uid = user.uid;
-    }
-
-    // 2. Use template UID if `uid=template` or no auth
-    else if (req.query.uid === 'template' || !req.user) {
+    // 0. Explicit template override
+    if (req.query.uid === 'template') {
       const templateUser = await usersCollection.findOne({ email: "joviantogodjali@gmail.com" });
       if (!templateUser) {
         return res.status(404).json({ error: "Template user not found" });
@@ -323,9 +323,27 @@ app.get('/api/categories', authenticateOptional, async (req, res) => {
       uid = templateUser.uid;
     }
 
-    // 3. Fallback to authenticated UID
-    else {
+    // 1. Use `username` if provided
+    else if (req.query.username) {
+      const user = await usersCollection.findOne({ username: req.query.username });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      uid = user.uid;
+    }
+
+    // 2. Use authenticated UID
+    else if (req.user) {
       uid = req.user.uid;
+    }
+
+    // 3. Fallback to template
+    else {
+      const templateUser = await usersCollection.findOne({ email: "joviantogodjali@gmail.com" });
+      if (!templateUser) {
+        return res.status(404).json({ error: "Template user not found" });
+      }
+      uid = templateUser.uid;
     }
 
     const categories = await categoriesCollection.find({ uid }).toArray();
@@ -378,9 +396,7 @@ app.get('/api/users/get-by-uid', async (req, res) => {
     const { uid } = req.query;
     if (!uid) return res.status(400).json({ message: "Missing uid" });
 
-    console.log("Looking for user with uid:", uid);
     const user = await db.collection('users').findOne({ uid });
-    console.log("Found user:", user);
 
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);

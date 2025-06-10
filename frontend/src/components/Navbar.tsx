@@ -36,7 +36,7 @@ function Navbar({ viewedUsername }: NavbarProps) {
   const rawDisplayUsername = viewedUsername ?? usernameFromUrl ?? "";
   const displayUsername = rawDisplayUsername.trim() !== "" ? rawDisplayUsername : "Akshiro";
   const [backendUserLoading, setBackendUserLoading] = useState(true);
-  const isUserFullyLoaded = !backendUserLoading && user !== null;
+  const isUserFullyLoaded = !backendUserLoading;
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -249,14 +249,16 @@ function Navbar({ viewedUsername }: NavbarProps) {
         </a>
 
         {!user && isUserFullyLoaded && (
+          console.log('user is', user),
           <div className="flex items-center text-sm italic text-[var(--text-thin)]">
-            Welcome! You're viewing {displayUsername}'s game list. Sign in to create your own!
+            Welcome! You're viewing <span className="font-bold">&nbsp;{displayUsername}</span>'s game list. Sign in to create your own!
           </div>
         )}
 
         {user && isUserFullyLoaded && backendUser?.username !== displayUsername && (
-          <div className="flex items-center text-sm italic text-[var(--text-thin)] gap-1">
-            You're viewing <span className="font-bold">&nbsp;{displayUsername}</span>'s game list.{" "}
+          console.log('user is', user),
+          <div className="flex items-center text-sm italic text-[var(--text-thin)]">
+            You're viewing <span className="font-bold">&nbsp;{displayUsername}</span>'s game list.&nbsp;
             <a
               href={`/${backendUser?.username}`}
               className="text-blue-600 underline hover:text-blue-600 cursor-pointer"
