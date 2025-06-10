@@ -465,3 +465,10 @@ app.get('/api/users/me', authenticate, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json(user); // includes `username`
 });
+
+// Example with Express + MongoDB
+app.get('/api/users/exists/:username', authenticate, async (req, res) => {
+  const { username } = req.params;
+  const user = await db.collection('users').findOne({ username });
+  res.json({ exists: !!user });
+});

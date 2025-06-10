@@ -44,7 +44,7 @@ function Card3D({ children }: Card3DProps) {
   return (
     <div
       ref={cardRef}
-      className="transition-transform duration-300 ease-out will-change-transform"
+      className="transition-transform duration-300 ease-out will-change-transform h-full"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >

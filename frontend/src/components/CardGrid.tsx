@@ -214,85 +214,91 @@ function CardGrid({
             No games found.
           </div>
         ) : (
+          <div key={filteredCards.map(c => c._id).join()} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 overflow-hidden">
+            {filteredCards.map((card, index) => {
+              let textColor = '';
+              let bgColor = '';
+              let borderColor = '';
 
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 overflow-hidden">
-          {filteredCards.map((card, index) => {
-            let textColor = '';
-            let bgColor = '';
-            let borderColor = '';
+              if (card.score >= 95) {
+                textColor = 'text-[var(--diamond)]';
+                bgColor = 'bg-[var(--diamond15)]';
+                borderColor = 'border-2 border-[var(--diamond)] shadow-[0_0_16px_7px_var(--diamond15)]';
+              } else if (card.score >= 80) {
+                textColor = 'text-[var(--green)]';
+                bgColor = 'bg-[var(--green15)]';
+              } else if (card.score >= 50) {
+                textColor = 'text-[var(--yellow)]';
+                bgColor = 'bg-[var(--yellow15)]';
+              } else {
+                textColor = 'text-[var(--red)]';
+                bgColor = 'bg-[var(--red15)]';
+              }
 
-            if (card.score >= 95) {
-              textColor = 'text-[var(--diamond)]';
-              bgColor = 'bg-[var(--diamond15)]';
-              borderColor = 'border-2 border-[var(--diamond)] shadow-[0_0_16px_7px_var(--diamond15)]'
-            } else if (card.score >= 80) {
-              textColor = 'text-[var(--green)]';
-              bgColor = 'bg-[var(--green15)]';
-            } else if (card.score >= 50) {
-              textColor = 'text-[var(--yellow)]';
-              bgColor = 'bg-[var(--yellow15)]';
-            } else {
-              textColor = 'text-[var(--red)]';
-              bgColor = 'bg-[var(--red15)]';
-            }
+              const isHovered = hoveredCardId === card._id;
 
-            const isHovered = hoveredCardId === card._id;
-
-            return (
-              <Card3D key={card._id ?? `card-${index}`}>
-                <div
-                  onMouseEnter={() => setHoveredCardId(card._id)}
-                  onMouseLeave={() => setHoveredCardId(null)}
-                  className="relative card rounded-lg overflow-hidden bg-[var(--thin)] hover:bg-[#2C3142] h-full transition-all"
-                >
-                  {!readOnly && user && isHovered && window.location.pathname !== '/' && (
-                    <div className="absolute top-4 left-4 flex gap-2">
-                      <button
-                        onClick={() => {
-                          if (!authUser) {
-                            toast.error("Sign in and start customizing your list!");
-                            return;
-                          }
-                          onEditClick(card);
-                        }}
-                        className="p-2 rounded bg-[var(--thin)] hover:bg-[var(--thin-brighter)] cursor-pointer"
-                        aria-label={`Edit ${card.name}`}
-                      >
-                        <img src={editIcon} alt="Edit" className="w-6 h-6" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (!user) {
-                            toast.error("Sign in and start customizing your list!");
-                            return;
-                          }
-                          setCardToDelete(card);
-                        }}
-                        className="p-2 rounded bg-red-600 hover:bg-red-500 cursor-pointer"
-                        aria-label="Delete this game"
-                      >
-                        <img src={deleteIcon} alt="Delete" className="w-6 h-6" />
-                      </button>
+              return (
+                <div key={card._id ?? `card-${index}`}>
+                  <Card3D>
+                    <div
+                      onMouseEnter={() => setHoveredCardId(card._id)}
+                      onMouseLeave={() => setHoveredCardId(null)}
+                      className="relative card rounded-lg overflow-hidden bg-[var(--thin)] hover:bg-[#2C3142] transition-all h-full"
+                      style={{
+                        animation: `fadeUp 0.8s cubic-bezier(0.18, 0.12, 0.22, 1) forwards`,
+                        animationDelay: `${index * 60}ms`,
+                        opacity: 0,
+                        transform: 'translateY(12px)',
+                      }}
+                    >
+                      {!readOnly && user && isHovered && window.location.pathname !== '/' && (
+                        <div className="absolute top-4 left-4 flex gap-2">
+                          <button
+                            onClick={() => {
+                              if (!authUser) {
+                                toast.error("Sign in and start customizing your list!");
+                                return;
+                              }
+                              onEditClick(card);
+                            }}
+                            className="p-2 rounded bg-[var(--thin)] hover:bg-[var(--thin-brighter)] cursor-pointer"
+                            aria-label={`Edit ${card.name}`}
+                          >
+                            <img src={editIcon} alt="Edit" className="w-6 h-6" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (!user) {
+                                toast.error("Sign in and start customizing your list!");
+                                return;
+                              }
+                              setCardToDelete(card);
+                            }}
+                            className="p-2 rounded bg-red-600 hover:bg-red-500 cursor-pointer"
+                            aria-label="Delete this game"
+                          >
+                            <img src={deleteIcon} alt="Delete" className="w-6 h-6" />
+                          </button>
+                        </div>
+                      )}
+                      <img className="w-full h-36 object-cover" src={card.image} alt={`Cover of ${card.name}`} />
+                      <div className="px-5 py-4">
+                        <div className="flex w-full items-center justify-between">
+                          <h3 className="text-lg font-semibold">{card.name}</h3>
+                          <span className={`px-2 rounded text-sm font-medium w-fit h-fit ${textColor} ${bgColor} ${borderColor}`}>
+                            {card.score}
+                          </span>
+                        </div>
+                        {card.description && (
+                          <p className="text-sm text-[var(--text-thin)] mt-2">{card.description}</p>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  <img className="w-full h-36 object-cover" src={card.image} alt={`Cover of ${card.name}`} />
-                  <div className="px-5 py-4">
-                    <div className="flex w-full items-center justify-between">
-                      <h3 className="text-lg font-semibold">{card.name}</h3>
-                      <span className={`px-2 rounded text-sm font-medium w-fit h-fit ${textColor} ${bgColor} ${borderColor}`}>
-                        {card.score}
-                      </span>
-                    </div>
-                    {card.description && (
-                      <p className="text-sm text-[var(--text-thin)] mt-2">{card.description}</p>
-                    )}
-                  </div>
+                  </Card3D>
                 </div>
-              </Card3D>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
