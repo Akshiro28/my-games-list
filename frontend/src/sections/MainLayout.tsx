@@ -260,6 +260,8 @@ function MainLayout({
                 cards={filteredCards}
                 onEditClick={handleEditClick}
                 onDelete={handleDelete}
+                user={user}
+                readOnly={readOnly}
               />
             </div>
           </div>

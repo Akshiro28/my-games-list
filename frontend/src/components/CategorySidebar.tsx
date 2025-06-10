@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { toast } from "react-hot-toast";
 
 export type Category = {
   _id: string;
@@ -71,7 +70,7 @@ function CategorySidebar({
   }, [filteredCategories]);
 
   return (
-    <aside className="max-w-64 flex flex-col h-full relative">
+    <aside className="w-64 flex flex-col h-full relative">
       <div className="sticky top-0 bg-[var(--bg)] z-1">
         <h2 className="text-4xl font-semibold mb-5">Categories</h2>
 
@@ -84,26 +83,16 @@ function CategorySidebar({
             className="w-full px-3 py-2 mb-6 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder:italic"
           />
 
-          <div
-            className={`flex items-center justify-center h-[44px] px-3 ms-2 rounded-md text-sm font-medium
-              ${readOnly
-                ? 'border-gray-500 text-gray-500 cursor-not-allowed border-2'
-                : 'border-[var(--thin)] text-[var(--thin-brighter)] hover:text-[var(--text-thin)] hover:border-[var(--thin-brighter)] cursor-pointer border-2'}
-            `}
-            onClick={() => {
-              if (readOnly) {
-                toast.error("You can only edit your own categories.");
-                return;
-              }
-              if (!user) {
-                toast.error("Sign in and start customizing your list!");
-                return;
-              }
-              onAddCategoryClick();
-            }}
-          >
-            Edit
-          </div>
+          {!readOnly && user && (
+            <div
+              className={`flex items-center justify-center h-[44px] px-3 ms-2 rounded-md text-sm font-medium
+                border-[var(--thin)] text-[var(--thin-brighter)] hover:text-[var(--text-thin)] hover:border-[var(--thin-brighter)] cursor-pointer border-2
+              `}
+              onClick={onAddCategoryClick}
+            >
+              Edit
+            </div>
+          )}
         </div>
       </div>
 

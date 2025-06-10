@@ -18,6 +18,8 @@ type CardGridProps = {
   cards: Card[];
   onEditClick: (card: Card) => void;
   onDelete: (_id: string) => void;
+  user: any;
+  readOnly?: boolean;
 };
 
 const SORT_OPTIONS = [
@@ -27,14 +29,21 @@ const SORT_OPTIONS = [
   { value: 'scoreAsc', label: 'Score: Low → High' },
 ];
 
-function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
+function CardGrid({
+  cards,
+  onEditClick,
+  onDelete,
+  user,
+  readOnly = false,
+}: CardGridProps) {
   const [search, setSearch] = useState('');
   const [sortOption, setSortOption] = useState('titleAsc');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+  
 
   const [topGradientHeight, setTopGradientHeight] = useState<number>(0);
   const [bottomGradientHeight, setBottomGradientHeight] = useState<number>(0);
@@ -176,27 +185,25 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
               </div>
             </div>
 
-            <div className="flex gap-2 w-full sm:w-auto sm:flex-none sm:flex-row flex-col">
-              <button
-                onClick={() => {
-                  if (!user) {
-                    toast.error("Sign in and start customizing your list!");
-                    return;
-                  }
-                  onEditClick({
-                    _id: '_new',
-                    name: '',
-                    description: '',
-                    image: '',
-                    score: 0,
-                    categories: [],
-                  });
-                }}
-                className="px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]"
-              >
-                + Add New Game
-              </button>
-            </div>
+            {!readOnly && authUser && (
+              <div className="flex gap-2 w-full sm:w-auto sm:flex-none sm:flex-row flex-col">
+                <button
+                  onClick={() => {
+                    onEditClick({
+                      _id: '_new',
+                      name: '',
+                      description: '',
+                      image: '',
+                      score: 0,
+                      categories: [],
+                    });
+                  }}
+                  className="px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]"
+                >
+                  + Add New Game
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -239,11 +246,11 @@ function CardGrid({ cards, onEditClick, onDelete }: CardGridProps) {
                   onMouseLeave={() => setHoveredCardId(null)}
                   className="relative card rounded-lg overflow-hidden bg-[var(--thin)] hover:bg-[#2C3142] h-full transition-all"
                 >
-                  {isHovered && (
+                  {!readOnly && user && isHovered && (
                     <div className="absolute top-4 left-4 z-1 flex gap-2">
                       <button
                         onClick={() => {
-                          if (!user) {
+                          if (!authUser) {
                             toast.error("Sign in and start customizing your list!");
                             return;
                           }
