@@ -442,3 +442,10 @@ app.get('/api/users/check-username', async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+app.get('/api/users/me', authenticate, async (req, res) => {
+  const { uid } = req.user;
+  const user = await db.collection('users').findOne({ uid });
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  res.json(user); // includes `username`
+});

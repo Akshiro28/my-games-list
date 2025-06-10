@@ -27,6 +27,7 @@ function MainLayout({
   externalCategories = null,
 }: MainLayoutProps) {
   const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [categories, setCategories] = useState<Category[]>(externalCategories ?? []);
   const [cards, setCards] = useState<Card[]>(externalCards ?? []);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -34,33 +35,48 @@ function MainLayout({
   const [isNew, setIsNew] = useState(false);
   const [editingCategory, setEditingCategory] = useState(false);
   const [isTemplateMode, setIsTemplateMode] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ username: string } | null>(null);
 
   useEffect(() => {
-    if (externalCards && externalCategories) return;
-    if (username) return; // profile page mode
+    if (externalCards && externalCategories) {
+      console.log('[useEffect:auth] Using external data, skipping auth listener');
+      setAuthReady(true);
+      return;
+    }
 
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log('[Firebase] onAuthStateChanged triggered:', firebaseUser);
       setUser(firebaseUser);
       setIsTemplateMode(!firebaseUser);
+      setAuthReady(true);
     });
 
     return () => unsubscribe();
-  }, [externalCards, externalCategories, username]);
+  }, [externalCards, externalCategories]);
 
   useEffect(() => {
     if (externalCards && externalCategories) return;
+    if (!authReady) {
+      console.log('[useEffect:dataFetch] Waiting for auth to load...');
+      return;
+    }
 
     if (username) {
+      console.log('[useEffect:profile] Fetching shared profile data for:', username);
       fetchCardsAndCategories('profile');
-    } else {
-      // Always load template mode when no username
+    } else if (!user) {
+      console.log('[useEffect:template] Fetching template data...');
       fetchCardsAndCategories('template');
+    } else {
+      console.log('[useEffect:user] Fetching user data...');
+      fetchCardsAndCategories('user');
     }
-  }, [username]);
+  }, [username, user, authReady, externalCards, externalCategories]);
 
   async function fetchCardsAndCategories(mode: 'user' | 'template' | 'profile') {
     try {
+      console.log(`[fetchCardsAndCategories] Fetching data for mode: ${mode}`);
       const cardsRes = await axiosAuth.get<Card[]>(
         mode === 'profile'
           ? `/api/cards?username=${username}`
@@ -75,10 +91,12 @@ function MainLayout({
           ? '/api/categories?uid=template'
           : '/api/categories'
       );
+      console.log('[fetchCardsAndCategories] Cards:', cardsRes.data);
+      console.log('[fetchCardsAndCategories] Categories:', categoriesRes.data);
       setCards(cardsRes.data);
       setCategories(categoriesRes.data);
     } catch (err) {
-      console.error('Failed to fetch cards or categories:', err);
+      console.error('[fetchCardsAndCategories] Failed:', err);
     }
   }
 
@@ -109,6 +127,7 @@ function MainLayout({
   }
 
   function handleSave() {
+    console.log('[handleSave] Refreshing data after save...');
     fetchCardsAndCategories(isTemplateMode ? 'template' : 'user');
     closeEditSection();
   }
@@ -132,7 +151,33 @@ function MainLayout({
   }
 
   function openCategoryEditor() {
-    if (readOnly) return;
+    console.log('user:', user);
+    console.log('username:', username);
+    console.log('displayName:', user?.displayName);
+
+    if (!authReady) {
+      console.log('[openCategoryEditor] Auth not ready yet');
+      toast('Loading... Please wait.');
+      return;
+    }
+
+    const isOwnProfile =
+      user &&
+      username &&
+      userProfile &&
+      userProfile.username.trim().toLowerCase() === username.trim().toLowerCase();
+
+    console.log('isOwnProfile:', isOwnProfile);
+
+    const allowEdit = !readOnly && (isOwnProfile || (!username && user));
+
+    console.log('allowEdit:', allowEdit);
+
+    if (!allowEdit) {
+      toast('Sign in and start customizing your list!');
+      return;
+    }
+
     setEditingCategory(true);
   }
 
@@ -147,6 +192,7 @@ function MainLayout({
     try {
       const res = await axiosAuth.delete(`/api/categories/${id}`);
       if (res.status === 200) {
+        console.log('[handleDeleteCategory] Deleted successfully');
         fetchCardsAndCategories(isTemplateMode ? 'template' : 'user');
         toast.success('Category deleted!', { id: toastId });
       } else {
@@ -163,10 +209,30 @@ function MainLayout({
   }
 
   function handleCategorySave(closeAfterSave = true) {
+    console.log('[handleCategorySave] Refreshing categories after save...');
     fetchCardsAndCategories(isTemplateMode ? 'template' : 'user');
     if (closeAfterSave) {
       closeCategoryEditor();
     }
+  }
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user || !authReady) return;
+
+      try {
+        const res = await axiosAuth.get('/api/users/me'); // Assumes backend route returns user's info
+        setUserProfile(res.data);
+      } catch (err) {
+        console.error('[fetchUserProfile] Failed:', err);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user, authReady]);
+
+  if (!authReady && !externalCards && !externalCategories) {
+    return null; // or a spinner
   }
 
   return (
@@ -190,11 +256,6 @@ function MainLayout({
 
           <div className="relative flex-1 overflow-hidden">
             <div className="card-grid absolute top-0 left-0 w-full h-full">
-              {/* {username && (
-                <h2 className="text-xl font-bold px-4 pt-4">
-                  Games shared by {username}
-                </h2>
-              )} */}
               <CardGrid
                 cards={filteredCards}
                 onEditClick={handleEditClick}
@@ -204,7 +265,6 @@ function MainLayout({
           </div>
         </div>
 
-        {/* Edit Game Section */}
         {!editingCategory && !readOnly && (
           <div
             className={`edit-section container absolute top-full w-full h-full bg-[var(--background)] transition-all duration-800 ease-in-out ${
@@ -222,7 +282,6 @@ function MainLayout({
           </div>
         )}
 
-        {/* Edit Category Section */}
         {!editingCard && editingCategory && !readOnly && (
           <div
             className={`edit-section container absolute top-full w-full h-full bg-[var(--background)] transition-all duration-800 ease-in-out editing-active`}

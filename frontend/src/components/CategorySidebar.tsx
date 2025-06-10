@@ -15,7 +15,14 @@ type CategorySidebarProps = {
   readOnly?: boolean;
 };
 
-function CategorySidebar({ categories, selectedCategory, setSelectedCategory, onAddCategoryClick, user }: CategorySidebarProps) {
+function CategorySidebar({
+  categories,
+  selectedCategory,
+  setSelectedCategory,
+  onAddCategoryClick,
+  user,
+  readOnly = false,
+}: CategorySidebarProps) {
   const [search, setSearch] = useState('');
   const [topGradientHeight, setTopGradientHeight] = useState<number>(0);
   const [bottomGradientHeight, setBottomGradientHeight] = useState<number>(0);
@@ -37,7 +44,6 @@ function CategorySidebar({ categories, selectedCategory, setSelectedCategory, on
       const scrollHeight = el.scrollHeight;
       const clientHeight = el.clientHeight;
 
-      // If there's no vertical scroll (content fits), hide both gradients
       if (scrollHeight <= clientHeight) {
         setTopGradientHeight(0);
         setBottomGradientHeight(0);
@@ -56,7 +62,7 @@ function CategorySidebar({ categories, selectedCategory, setSelectedCategory, on
     const current = listRef.current;
     if (current) {
       current.addEventListener('scroll', handleScroll);
-      handleScroll(); // Initial call
+      handleScroll(); // Initial
     }
 
     return () => {
@@ -79,8 +85,16 @@ function CategorySidebar({ categories, selectedCategory, setSelectedCategory, on
           />
 
           <div
-            className="flex items-center justify-center border-2 border-[var(--thin)] h-[44px] px-3 ms-2 rounded-md text-[var(--thin-brighter)] hover:text-[var(--text-thin)] hover:border-[var(--thin-brighter)] cursor-pointer"
+            className={`flex items-center justify-center h-[44px] px-3 ms-2 rounded-md text-sm font-medium
+              ${readOnly
+                ? 'border-gray-500 text-gray-500 cursor-not-allowed border-2'
+                : 'border-[var(--thin)] text-[var(--thin-brighter)] hover:text-[var(--text-thin)] hover:border-[var(--thin-brighter)] cursor-pointer border-2'}
+            `}
             onClick={() => {
+              if (readOnly) {
+                toast.error("You can only edit your own categories.");
+                return;
+              }
               if (!user) {
                 toast.error("Sign in and start customizing your list!");
                 return;
