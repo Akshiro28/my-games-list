@@ -242,21 +242,19 @@ function Navbar({ viewedUsername }: NavbarProps) {
 
   return (
     <>
-      <nav className="container fixed top-4 w-[calc(100%-32px)] translate-x-[-50%] left-1/2 bg-[var(--thin)] rounded-lg h-18 flex justify-between py-5 px-10 z-9">
+      <nav className="container fixed top-4 w-[calc(100%-32px)] translate-x-[-50%] left-1/2 bg-[var(--thin)] rounded-lg h-18 flex justify-between py-5 px-10 z-10">
         <a className="flex items-center" href="/">
           <img src="/logo/logo_AK.png" alt="Logo" className="h-full" />
           <p className="ms-4.5 text-xl">MyGamesList</p>
         </a>
 
         {!user && isUserFullyLoaded && (
-          console.log('user is', user),
           <div className="flex items-center text-sm italic text-[var(--text-thin)]">
             Welcome! You're viewing <span className="font-bold">&nbsp;{displayUsername}</span>'s game list. Sign in to create your own!
           </div>
         )}
 
         {user && isUserFullyLoaded && backendUser?.username !== displayUsername && (
-          console.log('user is', user),
           <div className="flex items-center text-sm italic text-[var(--text-thin)]">
             You're viewing <span className="font-bold">&nbsp;{displayUsername}</span>'s game list.&nbsp;
             <a
@@ -280,7 +278,7 @@ function Navbar({ viewedUsername }: NavbarProps) {
                 <span>{backendUser?.username || user.displayName}</span>
               </div>
               {showDropdown && (
-                <div className="absolute top-full right-0 mt-2 w-43 bg-[var(--thin)] border-2 border-[var(--thin-brighter)] rounded-md z-9 flex flex-col overflow-hidden">
+                <div className="absolute top-full right-0 mt-2 w-43 bg-[var(--thin)] border-2 border-[var(--thin-brighter)] rounded-md z-10 flex flex-col overflow-hidden">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -327,7 +325,7 @@ function Navbar({ viewedUsername }: NavbarProps) {
       </nav>
 
       {showUsernamePrompt && (
-        <div className="fixed inset-0 z-9 flex items-center justify-center bg-[rgba(0,0,0,0.32)] backdrop-blur-xs">
+        <div className="fixed inset-0 z-10 flex items-center justify-center bg-[rgba(0,0,0,0.32)] backdrop-blur-xs">
           <div className="bg-[var(--background)] p-6 rounded-md max-w-120 w-full border-2 border-[var(--thin-brighter)] large-shadow-darker">
             <h2 className="text-3xl font-semibold mb-6">
               {isEditingUsername ? "Edit username" : "Choose a username"}

@@ -71,7 +71,7 @@ function CategorySidebar({
 
   return (
     <aside className="w-64 flex flex-col h-full relative">
-      <div className="sticky top-0 bg-[var(--bg)] z-1">
+      <div className="sticky top-0 bg-[var(--bg)]">
         <h2 className="text-4xl font-semibold mb-5">Categories</h2>
 
         <div className="flex">
@@ -83,7 +83,7 @@ function CategorySidebar({
             className="w-full px-3 py-2 mb-6 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder:italic"
           />
 
-          {!readOnly && user && (
+          {user && !readOnly && window.location.pathname !== '/' && (
             <div
               className={`flex items-center justify-center h-[44px] px-3 ms-2 rounded-md text-sm font-medium
                 border-[var(--thin)] text-[var(--thin-brighter)] hover:text-[var(--text-thin)] hover:border-[var(--thin-brighter)] cursor-pointer border-2

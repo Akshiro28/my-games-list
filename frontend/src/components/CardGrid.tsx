@@ -185,7 +185,7 @@ function CardGrid({
               </div>
             </div>
 
-            {!readOnly && authUser && (
+            {!readOnly && authUser && window.location.pathname !== '/' && (
               <div className="flex gap-2 w-full sm:w-auto sm:flex-none sm:flex-row flex-col">
                 <button
                   onClick={() => {
@@ -210,7 +210,7 @@ function CardGrid({
 
       <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
         {filteredCards.length === 0 ? (
-          <div className="relative z-1 flex items-center justify-center h-full w-full p-4 text-center text-[var(--thin-brighter)] rounded-md border-2 border-dashed border-[var(--thin)] italic">
+          <div className="relative flex items-center justify-center h-full w-full p-4 text-center text-[var(--thin-brighter)] rounded-md border-2 border-dashed border-[var(--thin)] italic">
             No games found.
           </div>
         ) : (
@@ -246,8 +246,8 @@ function CardGrid({
                   onMouseLeave={() => setHoveredCardId(null)}
                   className="relative card rounded-lg overflow-hidden bg-[var(--thin)] hover:bg-[#2C3142] h-full transition-all"
                 >
-                  {!readOnly && user && isHovered && (
-                    <div className="absolute top-4 left-4 z-1 flex gap-2">
+                  {!readOnly && user && isHovered && window.location.pathname !== '/' && (
+                    <div className="absolute top-4 left-4 flex gap-2">
                       <button
                         onClick={() => {
                           if (!authUser) {
@@ -297,7 +297,7 @@ function CardGrid({
       </div>
 
       {cardToDelete && (
-        <div className="fixed inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.32)] backdrop-blur-xs z-9">
+        <div className="fixed inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.32)] backdrop-blur-xs z-20">
           <div className="bg-[var(--background)] px-8 py-6 rounded-lg shadow-md text-center large-shadow-darker border-2 border-[var(--thin-brighter)]">
             <p className="text-lg mb-4">
               Are you sure you want to delete "<strong>{cardToDelete.name}</strong>"?
