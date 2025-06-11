@@ -54,6 +54,9 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [defaultImageUrl, setDefaultImageUrl] = useState<string | null>(null);
 
+  const dropzoneRef = useRef<HTMLDivElement>(null);
+  const dragCounter = useRef(0);
+
   useEffect(() => {
     const query = debouncedTitleInput.trim();
     if (query.length === 0) {
@@ -208,14 +211,22 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     }
   }
 
-  function handleDragOver(e: React.DragEvent) {
+  function handleDragEnter(e: React.DragEvent) {
     e.preventDefault();
+    dragCounter.current += 1;
     setDragOver(true);
   }
 
   function handleDragLeave(e: React.DragEvent) {
     e.preventDefault();
-    setDragOver(false);
+    dragCounter.current -= 1;
+    if (dragCounter.current === 0) {
+      setDragOver(false);
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault(); // Required to allow drop
   }
 
   const MAX_DIMENSION = 960;
@@ -265,6 +276,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
+    dragCounter.current = 0;
     setDragOver(false);
 
     const file = e.dataTransfer.files[0];
@@ -272,10 +284,9 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
     try {
       const processedBlob = await resizeImageIfNeeded(file);
-      
-      // Preview
+
       const previewUrl = URL.createObjectURL(processedBlob);
-      setImagePreview(previewUrl); // Optional preview state
+      setImagePreview(previewUrl); // ✅ shows preview
 
       // Upload to Cloudinary
       const formData = new FormData();
@@ -301,9 +312,13 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     }
   };
 
-  function handleClickDropzone() {
+  const handleClickDropzone = () => {
     inputRef.current?.click();
-  }
+
+    if (dropzoneRef.current) {
+      dropzoneRef.current.click();
+    }
+  };
 
   // Upload image and return object with url and public_id
   async function uploadImageToCloudinary(file: File): Promise<{ url: string, publicId: string }> {
@@ -416,6 +431,34 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     }
   }
 
+  const fetchDefaultImageForTitle = async (title: string) => {
+    if (!title) return;
+
+    try {
+      const res = await fetch(`/api/suggestions?query=${encodeURIComponent(title)}`);
+
+      const contentType = res.headers.get("Content-Type") || "";
+
+      if (!res.ok || !contentType.toLowerCase().includes("application/json")) {
+        console.warn("RAWG API did not return JSON. Likely no valid game found.");
+        const text = await res.text(); // Optional debug info
+        console.log("Response was:", text);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (Array.isArray(data) && data.length > 0 && data[0].image) {
+        setDefaultImageUrl(data[0].image);
+      } else {
+        console.log("No matching game found for title:", title);
+        setDefaultImageUrl(""); // Clear or fallback
+      }
+    } catch (err) {
+      console.error("Failed to fetch RAWG image", err);
+    }
+  };
+
   return (
     <section className="w-full container mx-auto h-full overflow-auto pt-5" aria-modal="true" role="dialog" aria-labelledby="edit-game-title">
       <div className="mx-auto w-fit">
@@ -456,6 +499,22 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
               onBlur={() => {
                 setIsInputFocused(false);
                 setTimeout(() => setShowSuggestions(false), 150);
+
+                // ✅ Attempt to auto-select matching image if typed manually
+                if (formData?.name?.trim()) {
+                  const match = titleSuggestions.find(
+                    (s) => s.title.toLowerCase() === formData.name.trim().toLowerCase()
+                  );
+
+                  if (match?.image) {
+                    setFormData((prev) =>
+                      prev ? { ...prev, image: match.image, cloudinaryPublicId: undefined } : null
+                    );
+                    setDefaultImageUrl(match.image);
+                  } else {
+                    fetchDefaultImageForTitle(formData.name.trim()); // optional fallback if needed
+                  }
+                }
               }}
               placeholder="Enter game title..."
               className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] placeholder:italic"
@@ -463,24 +522,35 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
             {showSuggestions && (isLoadingSuggestions || titleSuggestions.length > 0) && (
               <ul className="absolute top-full left-0 right-0 border-2 border-[var(--thin-brighter)] bg-[var(--thin)] mt-2 z-10 rounded-md max-h-40 overflow-y-auto">
                 {isLoadingSuggestions && (
-                  <li className="px-3 py-2 italic text-[var(--text-thin-brighter)]">Loading suggestions...</li>
-                )}
-                {!isLoadingSuggestions && titleSuggestions.map((suggestion, idx) => (
-                  <li
-                    key={idx}
-                    onMouseDown={() => {
-                      const selected = suggestion.title;
-                      setFormData(prev => prev ? { ...prev, name: selected } : null);
-                      setTitleInput(selected);
-                      setTitleSuggestions([]);
-                      setShowSuggestions(false);
-                      setDefaultImageUrl(suggestion.image);
-                    }}
-                    className="px-3 py-2 hover:bg-[var(--thin-brighter)] cursor-pointer"
-                  >
-                    {suggestion.title}
+                  <li className="px-3 py-2 italic text-[var(--text-thin-brighter)]">
+                    Loading suggestions...
                   </li>
-                ))}
+                )}
+                {!isLoadingSuggestions &&
+                  titleSuggestions.map((suggestion, idx) => (
+                    <li
+                      key={idx}
+                      onMouseDown={() => {
+                        setFormData((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                name: suggestion.title,
+                                image: suggestion.image,
+                                cloudinaryPublicId: undefined,
+                              }
+                            : null
+                        );
+                        setTitleInput(suggestion.title);
+                        setTitleSuggestions([]);
+                        setShowSuggestions(false);
+                        setDefaultImageUrl(suggestion.image);
+                      }}
+                      className="px-3 py-2 hover:bg-[var(--thin-brighter)] cursor-pointer"
+                    >
+                      {suggestion.title}
+                    </li>
+                  ))}
               </ul>
             )}
           </div>
@@ -506,37 +576,60 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           />
 
           <div className="block">
-            <span className="mb-2 block">Upload Image <span className="text-[var(--thin-brighter-brighter)]">(10MB max)</span></span>
+            <span className="mb-2 block font-semibold">
+              Cover Image <span className="text-[var(--thin-brighter-brighter)]">(10MB max)</span>
+            </span>
+
+            {/* === Image Preview Box with Drag & Drop Support === */}
             <div
-              onClick={handleClickDropzone}
-              onDragOver={handleDragOver}
+              onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
               onDrop={handleDrop}
-              tabIndex={0}
-              role="button"
-              aria-label="Upload image by clicking or dragging and dropping"
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  handleClickDropzone();
-                  e.preventDefault();
-                }
-              }}
-              className={`group w-full border-2 border-dashed border-[var(--thin)] rounded-md p-4 text-center cursor-pointer select-none hover:border-[var(--thin-brighter)]
-                ${dragOver ? 'border-[var(--thin-brighter-brighter)] bg-[var(--thin)]' : 'border-[var(--thin)]'}
-              `}
-              style={{ minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              className={`w-full flex flex-col items-center justify-center border-2 ${
+                dragOver ? 'border-blue-500 bg-blue-50' : 'border-[var(--thin)] bg-[var(--thin)]'
+              } rounded-md p-4 transition-colors duration-200`}
             >
-              {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt="Selected preview"
-                  className="max-h-48 max-w-full object-contain rounded"
-                />
+              {(imagePreview || defaultImageUrl) ? (
+                <>
+                  <img
+                    src={(imagePreview ?? defaultImageUrl) ?? undefined}
+                    alt={imagePreview ? "Custom uploaded" : "Default from RAWG"}
+                    className="max-h-48 max-w-full object-contain rounded mb-3 pointer-events-none select-none"
+                  />
+                  <p className="text-sm italic text-[var(--text-thin-brighter)]">
+                    {imagePreview ? "Custom image selected" : "Default image from RAWG"}
+                  </p>
+                  {dragOver && (
+                    <div className="absolute inset-0 bg-blue-100 bg-opacity-60 z-10 flex items-center justify-center text-blue-700 font-medium rounded">
+                      Drop to upload
+                    </div>
+                  )}
+                </>
               ) : (
-                <p className="text-[var(--thin-brighter)] group-hover:text-[var(--text-thin)] italic">
-                  Click or drag & drop an image here
+                <p className="italic text-[var(--text-thin-brighter)]">
+                  Drag an image here or use the button below
                 </p>
               )}
+            </div>
+
+            {/* Upload Action Section */}
+            <div className="mt-4 text-center">
+              <p className="text-sm mb-2 text-[var(--text-thin)]">Want to use your own image?</p>
+              <button
+                type="button"
+                onClick={handleClickDropzone}
+                className="text-sm text-[var(--thin-brighter)] hover:text-[var(--text-thin)] underline"
+              >
+                Upload a custom image
+              </button>
+
+              {/* Hidden Dropzone Input (still needed for click-to-upload) */}
+              <div
+                onClick={handleClickDropzone}
+                style={{ display: "none" }}
+                ref={dropzoneRef}
+              />
             </div>
           </div>
 

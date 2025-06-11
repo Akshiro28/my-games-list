@@ -501,3 +501,19 @@ app.get('/api/suggestions', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch suggestions' });
   }
 });
+
+app.post('/api/images/delete', authenticate, async (req, res) => {
+  const { publicId } = req.body;
+
+  if (!publicId) {
+    return res.status(400).json({ error: 'publicId is required' });
+  }
+
+  try {
+    await cloudinary.uploader.destroy(publicId);
+    res.json({ message: 'Image deleted successfully' });
+  } catch (err) {
+    console.error('Cloudinary delete error:', err);
+    res.status(500).json({ error: 'Failed to delete image' });
+  }
+});
