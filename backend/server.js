@@ -1,4 +1,5 @@
 require('dotenv').config();
+const axios = require('axios');
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const cors = require('cors');
@@ -471,4 +472,32 @@ app.get('/api/users/exists/:username', authenticate, async (req, res) => {
   const { username } = req.params;
   const user = await db.collection('users').findOne({ username });
   res.json({ exists: !!user });
+});
+
+app.get('/api/suggestions', async (req, res) => {
+  const query = req.query.query;
+
+  if (!query || query.trim() === '') {
+    return res.status(400).json({ error: 'Missing query parameter' });
+  }
+
+  try {
+    const response = await axios.get('https://api.rawg.io/api/games', {
+      params: {
+        key: process.env.RAWG_API_KEY,
+        search: query,
+        page_size: 10,
+      },
+    });
+
+    const suggestions = response.data.results.map(game => ({
+      title: game.name,
+      image: game.background_image,
+    }));
+
+    res.json(suggestions);
+  } catch (error) {
+    console.error('RAWG fetch error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch suggestions' });
+  }
 });

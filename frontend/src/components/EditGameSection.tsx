@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import React from 'react';
 import { getAuth } from "firebase/auth";
+import { useDebounce } from "../hooks/useDebounce";
 
 type Card = {
   _id?: string;
@@ -25,6 +26,12 @@ type EditGameSectionProps = {
   isNew?: boolean;
 };
 
+type GameSuggestion = {
+  title: string;
+  image: string;
+};
+
+
 function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps) {
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const [formData, setFormData] = useState<Card | null>(null);
@@ -33,11 +40,50 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [titleInput, setTitleInput] = useState("");
+  const debouncedTitleInput = useDebounce(titleInput, 200);
+  const [titleSuggestions, setTitleSuggestions] = useState<GameSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [defaultImageUrl, setDefaultImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const query = debouncedTitleInput.trim();
+    if (query.length === 0) {
+      setTitleSuggestions([]);
+      return;
+    }
+
+    const fetchSuggestions = async () => {
+      try {
+        setIsLoadingSuggestions(true);
+        const res = await fetch(`${baseUrl}/api/suggestions?query=${encodeURIComponent(query)}`);
+        if (!res.ok) throw new Error(`Suggestions fetch failed with status ${res.status}`);
+        const data: GameSuggestion[] = await res.json();
+        setTitleSuggestions(data);
+      } catch (err) {
+        console.error("Failed to fetch title suggestions", err);
+        setTitleSuggestions([]);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    };
+
+    fetchSuggestions();
+  }, [debouncedTitleInput]);
+
+  useEffect(() => {
+    if ((titleSuggestions.length > 0 || isLoadingSuggestions) && isInputFocused) {
+      setShowSuggestions(true);
+    }
+  }, [titleSuggestions, isInputFocused, isLoadingSuggestions]);
 
   useEffect(() => {
     async function fetchCategories() {
@@ -132,6 +178,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         return;
       }
       setFormData(prev => prev ? { ...prev, name: value } : null);
+      setTitleInput(value);
     } else {
       setFormData(prev => prev ? { ...prev, [name]: value } : null);
     }
@@ -385,16 +432,57 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         </h2>
 
         <form onSubmit={handleSubmit} className="w-160 max-w-full flex flex-col gap-6">
-          <div className="block">
-            <span className="mb-2 block">Title <span className="text-[var(--thin-brighter-brighter)]">(100 characters max)</span></span>
+          <div className="block relative">
+            <span className="mb-2 block">
+              Title <span className="text-[var(--thin-brighter-brighter)]">(100 characters max)</span>
+            </span>
             <input
               type="text"
               name="name"
-              value={formData.name}
-              onChange={handleChange}
+              autoComplete="off"
+              value={formData?.name || ""}
+              ref={inputRef}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData((prev) => (prev ? { ...prev, name: value } : null));
+                setTitleInput(value);
+              }}
+              onFocus={() => {
+                setIsInputFocused(true);
+                if (titleSuggestions.length > 0 || isLoadingSuggestions) {
+                  setShowSuggestions(true);
+                }
+              }}
+              onBlur={() => {
+                setIsInputFocused(false);
+                setTimeout(() => setShowSuggestions(false), 150);
+              }}
               placeholder="Enter game title..."
               className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] placeholder:italic"
             />
+            {showSuggestions && (isLoadingSuggestions || titleSuggestions.length > 0) && (
+              <ul className="absolute top-full left-0 right-0 border-2 border-[var(--thin-brighter)] bg-[var(--thin)] mt-2 z-10 rounded-md max-h-40 overflow-y-auto">
+                {isLoadingSuggestions && (
+                  <li className="px-3 py-2 italic text-[var(--text-thin-brighter)]">Loading suggestions...</li>
+                )}
+                {!isLoadingSuggestions && titleSuggestions.map((suggestion, idx) => (
+                  <li
+                    key={idx}
+                    onMouseDown={() => {
+                      const selected = suggestion.title;
+                      setFormData(prev => prev ? { ...prev, name: selected } : null);
+                      setTitleInput(selected);
+                      setTitleSuggestions([]);
+                      setShowSuggestions(false);
+                      setDefaultImageUrl(suggestion.image);
+                    }}
+                    className="px-3 py-2 hover:bg-[var(--thin-brighter)] cursor-pointer"
+                  >
+                    {suggestion.title}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="block">
@@ -506,7 +594,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           <button
             type="submit"
             disabled={loading}
-            className={`bg-blue-600 py-3 rounded-md text-white font-semibold cursor-pointer
+            className={`bg-blue-600 py-3 rounded-md font-semibold cursor-pointer
               hover:bg-blue-500 ${loading ? 'opacity-50 cursor-not-allowed' : ''}
             `}
           >
