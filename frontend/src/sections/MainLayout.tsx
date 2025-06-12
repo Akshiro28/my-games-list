@@ -263,7 +263,9 @@ function MainLayout({
 
         {!editingCard && editingCategory && !readOnly && (
           <div
-            className={`edit-section container absolute top-full w-full h-full bg-[var(--background)] transition-all duration-800 ease-in-out editing-active`}
+            className={`edit-section container absolute top-full w-full h-full bg-[var(--background)] transition-all duration-800 ease-in-out ${
+              editingCategory ? 'editing-active' : 'editing-inactive'
+            }`}
             aria-modal="true"
             role="dialog"
           >

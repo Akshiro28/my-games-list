@@ -165,7 +165,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
   if (!formData) return null;
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  async function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
 
     if (name === 'score') {
@@ -193,6 +193,32 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         toast.error("Title cannot exceed 100 characters.");
         return;
       }
+
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      // Delete existing custom Cloudinary image if present
+      if (formData?.cloudinaryPublicId && user) {
+        try {
+          const token = await user.getIdToken();
+
+          await fetch("/api/images/delete", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ publicId: formData.cloudinaryPublicId }),
+          });
+
+          console.log("Deleted previous custom image from Cloudinary.");
+        } catch (err) {
+          console.error("Error deleting Cloudinary image:", err);
+          toast.error("Failed to delete previous image from Cloudinary.");
+        }
+      }
+
+      // Update form state after deletion
       setFormData(prev => prev ? {
         ...prev,
         name: value,
@@ -632,7 +658,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                     <img
                       src={imagePreview?.trim() || defaultImageUrl?.trim() || undefined}
                       alt={imagePreview ? "Custom uploaded" : "Default from RAWG"}
-                      className="max-h-48 max-w-full object-contain rounded pointer-events-none select-none"
+                      className="max-h-48 max-w-full object-contain rounded-lg pointer-events-none select-none border-4 border-[var(--background)]"
                     />
                     {dragOver && (
                       <div className="absolute inset-0 bg-[var(--background)] z-10 flex items-center justify-center text-[var(--thin-brighter)] font-medium rounded">
@@ -641,14 +667,20 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                     )}
                   </>
                 ) : (
+                  <>
+                    <img src="/logo/placeholder_img.png" alt="" />
+                    <p className="italic text-[var(--text-thin)] text-center">
+                      Drag an image here to upload a custom image or enter the game title to fetch the default image.
+                  </p>
+                  </>
+                )
+              ) : (
+                <>
+                  <img src="/logo/placeholder_img.png" alt="" className="max-w-10 w-full mb-2 mt-0.5"/>
                   <p className="italic text-[var(--text-thin)] text-center">
                     Drag an image here to upload a custom image or enter the game title to fetch the default image.
                   </p>
-                )
-              ) : (
-                <p className="italic text-[var(--text-thin)] text-center">
-                  Drag an image here to upload a custom image or enter the game title to fetch the default image.
-                </p>
+                </>
               )}
             </div>
 
