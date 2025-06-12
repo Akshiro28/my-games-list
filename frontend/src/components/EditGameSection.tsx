@@ -486,6 +486,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         </h2>
 
         <form onSubmit={handleSubmit} className="w-160 max-w-full flex flex-col gap-6">
+          {/* Title Input */}
           <div className="block relative">
             <span className="mb-2 block">
               Title <span className="text-[var(--thin-brighter-brighter)]">(100 characters max)</span>
@@ -511,7 +512,6 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                 setIsInputFocused(false);
                 setTimeout(() => setShowSuggestions(false), 150);
 
-                // ✅ Attempt to auto-select matching image if typed manually
                 if (formData?.name?.trim()) {
                   const match = titleSuggestions.find(
                     (s) => s.title.toLowerCase() === formData.name.trim().toLowerCase()
@@ -523,21 +523,21 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                     );
                     setDefaultImageUrl(match.image);
                   } else {
-                    fetchDefaultImageForTitle(formData.name.trim()); // optional fallback if needed
+                    fetchDefaultImageForTitle(formData.name.trim());
                   }
                 }
               }}
               placeholder="Enter game title..."
               className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] placeholder:italic"
             />
+
             {showSuggestions && (isLoadingSuggestions || titleSuggestions.length > 0) && (
               <ul className="absolute top-full left-0 right-0 border-2 border-[var(--thin-brighter)] bg-[var(--thin)] mt-2 z-10 rounded-md max-h-40 overflow-y-auto">
-                {isLoadingSuggestions && (
+                {isLoadingSuggestions ? (
                   <li className="px-3 py-2 italic text-[var(--text-thin-brighter)]">
                     Loading suggestions...
                   </li>
-                )}
-                {!isLoadingSuggestions &&
+                ) : (
                   titleSuggestions.map((suggestion, idx) => (
                     <li
                       key={idx}
@@ -561,11 +561,13 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
                     >
                       {suggestion.title}
                     </li>
-                  ))}
+                  ))
+                )}
               </ul>
             )}
           </div>
 
+          {/* Description */}
           <div className="block">
             <span className="mb-2 block">(Optional) Description <span className="text-[var(--thin-brighter-brighter)]">(100 characters max)</span></span>
             <textarea
@@ -578,6 +580,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
             />
           </div>
 
+          {/* Hidden File Input */}
           <input
             ref={inputRef}
             type="file"
@@ -586,12 +589,12 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
             style={{ display: 'none' }}
           />
 
+          {/* Cover Image Section */}
           <div className="block">
             <span className="mb-2 block font-semibold">
               Cover Image <span className="text-[var(--thin-brighter-brighter)]">(10MB max)</span>
             </span>
 
-            {/* === Image Preview Box with Drag & Drop Support === */}
             <div
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
@@ -604,7 +607,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
               {(imagePreview || defaultImageUrl) ? (
                 <>
                   <img
-                    src={(imagePreview ?? defaultImageUrl) ?? undefined}
+                    src={imagePreview ?? defaultImageUrl}
                     alt={imagePreview ? "Custom uploaded" : "Default from RAWG"}
                     className="max-h-48 max-w-full object-contain rounded mb-3 pointer-events-none select-none"
                   />
@@ -624,7 +627,6 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
               )}
             </div>
 
-            {/* Upload Action Section */}
             <div className="mt-4 text-center">
               <p className="text-sm mb-2 text-[var(--text-thin)]">Want to use your own image?</p>
               <button
@@ -634,32 +636,27 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
               >
                 Upload a custom image
               </button>
-
-              {/* Hidden Dropzone Input (still needed for click-to-upload) */}
-              <div
-                onClick={handleClickDropzone}
-                style={{ display: "none" }}
-                ref={dropzoneRef}
-              />
+              <div onClick={handleClickDropzone} style={{ display: "none" }} ref={dropzoneRef} />
             </div>
           </div>
 
+          {/* Score */}
           <div className="block">
             <span className="mb-2 block">Score <span className="text-[var(--thin-brighter-brighter)]">(1-100)</span></span>
             <input
               type="number"
               name="score"
               value={formData.score}
-              onChange={handleChange} // no inline validation here
+              onChange={handleChange}
               min={0}
               max={100}
               className="w-full border-2 border-[var(--thin)] rounded-md py-2 px-3 focus:outline-none hover:border-[var(--thin-brighter)] focus:border-[var(--thin-brighter)]"
             />
           </div>
 
+          {/* Categories */}
           <fieldset>
             <legend className="mb-2 block">(Optional) Categories <span className="text-[var(--thin-brighter-brighter)]">(multiple select)</span></legend>
-
             {!Array.isArray(availableCategories) || availableCategories.length === 0 ? (
               <p className="italic text-[var(--thin-brighter)]">
                 No categories yet. Add one to begin categorizing your games.
@@ -695,6 +692,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
             )}
           </fieldset>
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}

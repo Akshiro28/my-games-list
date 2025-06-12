@@ -287,7 +287,7 @@ function Navbar({ viewedUsername }: NavbarProps) {
             >
               <div className="flex items-center gap-3 hover:bg-[var(--thin-brighter)] py-2 px-3 rounded-md">
                 <img src={user.photoURL || "/default-avatar.png"} className="w-8 h-8 rounded-full" alt="avatar" />
-                <span>{backendUser?.username || user.displayName}</span>
+                <span>{backendUser === null ? "Loading..." : backendUser?.username || "Anonymous"}</span>
               </div>
               {showDropdown && (
                 <div className="absolute top-full right-0 mt-2 w-43 bg-[var(--thin)] border-2 border-[var(--thin-brighter)] rounded-md z-10 flex flex-col overflow-hidden">
