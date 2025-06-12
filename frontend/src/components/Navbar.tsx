@@ -4,6 +4,7 @@ import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import type { User } from "firebase/auth";
 import { useDebounce } from "../hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -232,8 +233,13 @@ function Navbar({ viewedUsername }: NavbarProps) {
         setUsernameStatus(null);
         setIsEditingUsername(false);
 
-        // ✅ Redirect to new username page
-        navigate(`/${trimmed}`);
+        // ✅ Show toast
+        toast.success("Username successfully changed!");
+
+        // ✅ Redirect after short delay to allow toast to show
+        setTimeout(() => {
+          navigate(`/${trimmed}`);
+        }, 1200); // wait ~1.2s before redirect
       } else {
         const errData = await res.json().catch(() => null);
         alert(errData?.message ?? "Error saving username");
