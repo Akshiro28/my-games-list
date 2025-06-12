@@ -3,6 +3,7 @@ import { auth, provider } from "../firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import type { User } from "firebase/auth";
 import { useDebounce } from "../hooks/useDebounce";
+import { useNavigate } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -192,6 +193,8 @@ function Navbar({ viewedUsername }: NavbarProps) {
     }
   };
 
+  const navigate = useNavigate(); // inside your component
+
   const handleSaveUsername = async () => {
     if (!user) return;
     const trimmed = username.trim();
@@ -228,6 +231,9 @@ function Navbar({ viewedUsername }: NavbarProps) {
         setUsername("");
         setUsernameStatus(null);
         setIsEditingUsername(false);
+
+        // ✅ Redirect to new username page
+        navigate(`/${trimmed}`);
       } else {
         const errData = await res.json().catch(() => null);
         alert(errData?.message ?? "Error saving username");
