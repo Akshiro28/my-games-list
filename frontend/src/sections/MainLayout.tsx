@@ -60,23 +60,17 @@ function MainLayout({
     if (!authReady) return;
 
     if (forceTemplateMode) {
-      console.log('[MainLayout] Forcing template mode');
       fetchCardsAndCategories('template');
     } else if (username) {
-      console.log('[MainLayout] Loading profile for', username);
       fetchCardsAndCategories('profile');
     } else if (user) {
-      console.log('[MainLayout] Loading signed-in user');
       fetchCardsAndCategories('user');
     } else {
-      console.log('[MainLayout] Loading fallback template');
       fetchCardsAndCategories('template');
     }
   }, [username, user, authReady, externalCards, externalCategories, forceTemplateMode]);
 
   async function fetchCardsAndCategories(mode: 'user' | 'template' | 'profile') {
-    console.log(`[CardGrid] Loading ${mode} data...`);
-
     try {
       const cardsRes = await axiosAuth.get<Card[]>(
         mode === 'profile'

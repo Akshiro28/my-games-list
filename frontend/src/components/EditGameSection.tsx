@@ -81,6 +81,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     };
 
     fetchSuggestions();
+    fetchDefaultImageForTitle(query);
   }, [debouncedTitleInput]);
 
   useEffect(() => {
@@ -443,7 +444,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   }
 
   const fetchDefaultImageForTitle = async (title: string) => {
-    if (!title) return;
+    if (!title || !isNew) return; // Only do this for new games
 
     try {
       const res = await fetch(`/api/suggestions?query=${encodeURIComponent(title)}`);
@@ -452,18 +453,26 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
       if (!res.ok || !contentType.toLowerCase().includes("application/json")) {
         console.warn("RAWG API did not return JSON. Likely no valid game found.");
-        const text = await res.text(); // Optional debug info
-        console.log("Response was:", text);
         return;
       }
 
       const data = await res.json();
 
-      if (Array.isArray(data) && data.length > 0 && data[0].image) {
-        setDefaultImageUrl(data[0].image);
-      } else {
-        console.log("No matching game found for title:", title);
-        setDefaultImageUrl(""); // Clear or fallback
+      if (
+        Array.isArray(data) &&
+        data.length > 0 &&
+        data[0].image &&
+        !formData?.image &&
+        !selectedFile
+      ) {
+        setFormData(prev =>
+          prev ? {
+            ...prev,
+            image: data[0].image,
+            cloudinaryPublicId: undefined, // RAWG image isn't from Cloudinary
+          } : null
+        );
+        setImagePreview(data[0].image);
       }
     } catch (err) {
       console.error("Failed to fetch RAWG image", err);
