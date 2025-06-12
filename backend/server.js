@@ -1,6 +1,6 @@
 require('dotenv').config();
-const express = require('express');
 const axios = require('axios');
+const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
@@ -487,23 +487,33 @@ app.get('/api/suggestions', async (req, res) => {
     return res.status(400).json({ error: 'Missing query parameter' });
   }
 
+  const rawgApiKey = process.env.RAWG_API_KEY;
+  if (!rawgApiKey) {
+    console.error('RAWG_API_KEY is missing in environment variables.');
+    return res.status(500).json({ error: 'RAWG API key not configured' });
+  }
+
   try {
     const response = await axios.get('https://api.rawg.io/api/games', {
       params: {
-        key: process.env.RAWG_API_KEY,
+        key: rawgApiKey,
         search: query,
         page_size: 10,
       },
     });
 
-    const suggestions = response.data.results.map(game => ({
+    const suggestions = response.data.results?.map((game) => ({
       title: game.name,
       image: game.background_image,
-    }));
+    })) || [];
 
     res.json(suggestions);
   } catch (error) {
     console.error('RAWG fetch error:', error.message);
+    if (error.response) {
+      console.error('RAWG error status:', error.response.status);
+      console.error('RAWG error body:', error.response.data);
+    }
     res.status(500).json({ error: 'Failed to fetch suggestions' });
   }
 });

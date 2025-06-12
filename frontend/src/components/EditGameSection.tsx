@@ -38,7 +38,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   const [availableCategories, setAvailableCategories] = React.useState<Category[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [titleInput, setTitleInput] = useState("");
   const debouncedTitleInput = useDebounce(titleInput, 200);
@@ -54,8 +54,8 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [defaultImageUrl, setDefaultImageUrl] = useState<string | null>(null);
   const [originalCloudinaryPublicId, setOriginalCloudinaryPublicId] = useState<string | undefined>();
+  const [isUsingDefaultImage, setIsUsingDefaultImage] = React.useState(true);
 
-  const dropzoneRef = useRef<HTMLDivElement>(null);
   const dragCounter = useRef(0);
 
   useEffect(() => {
@@ -81,7 +81,6 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     };
 
     fetchSuggestions();
-    fetchDefaultImageForTitle(query);
   }, [debouncedTitleInput]);
 
   useEffect(() => {
@@ -158,6 +157,12 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
     }
   }, [formData]);
 
+  useEffect(() => {
+    if (isUsingDefaultImage && debouncedTitleInput.trim().length > 0) {
+      fetchDefaultImageForTitle(debouncedTitleInput.trim());
+    }
+  }, [debouncedTitleInput, isUsingDefaultImage]);
+
   if (!formData) return null;
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
@@ -188,8 +193,17 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         toast.error("Title cannot exceed 100 characters.");
         return;
       }
-      setFormData(prev => prev ? { ...prev, name: value } : null);
+      setFormData(prev => prev ? {
+        ...prev,
+        name: value,
+        image: "",
+        cloudinaryPublicId: "",
+      } : null);
+
       setTitleInput(value);
+      setIsUsingDefaultImage(true);
+      setImagePreview(null);
+      setSelectedFile(null);
     } else {
       setFormData(prev => prev ? { ...prev, [name]: value } : null);
     }
@@ -208,6 +222,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         const resizedBlob = await resizeImageIfNeeded(file);
         const previewUrl = URL.createObjectURL(resizedBlob);
         setImagePreview(previewUrl);
+        setIsUsingDefaultImage(false);
 
         // Convert resized Blob back to File so Cloudinary gets a proper filename
         const resizedFile = new File([resizedBlob], file.name, { type: file.type });
@@ -322,10 +337,6 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
   const handleClickDropzone = () => {
     inputRef.current?.click();
-
-    if (dropzoneRef.current) {
-      dropzoneRef.current.click();
-    }
   };
 
   // Upload image and return object with url and public_id
@@ -433,8 +444,6 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       setOriginalCloudinaryPublicId(cloudinaryPublicId);
 
       toast.success(isNew ? 'Game saved successfully!' : 'Changes saved', { id: toastId });
-
-      toast.success(isNew ? 'Game saved successfully!' : 'Changes saved', { id: toastId });
     } catch (err) {
       console.error('Error saving card:', err);
       toast.error('Failed to save the game. Please try again.', { id: toastId });
@@ -444,35 +453,41 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
   }
 
   const fetchDefaultImageForTitle = async (title: string) => {
-    if (!title || !isNew) return; // Only do this for new games
+    if (!title) return;
 
     try {
       const res = await fetch(`/api/suggestions?query=${encodeURIComponent(title)}`);
 
       const contentType = res.headers.get("Content-Type") || "";
+      const text = await res.text();
 
       if (!res.ok || !contentType.toLowerCase().includes("application/json")) {
         console.warn("RAWG API did not return JSON. Likely no valid game found.");
         return;
       }
 
-      const data = await res.json();
+      const data = JSON.parse(text);
+      const imageUrl = data[0]?.image?.trim();
 
-      if (
-        Array.isArray(data) &&
-        data.length > 0 &&
-        data[0].image &&
-        !formData?.image &&
-        !selectedFile
-      ) {
-        setFormData(prev =>
-          prev ? {
-            ...prev,
-            image: data[0].image,
-            cloudinaryPublicId: undefined, // RAWG image isn't from Cloudinary
-          } : null
-        );
-        setImagePreview(data[0].image);
+      if (imageUrl) {
+        setDefaultImageUrl(imageUrl);
+
+        // Only update formData.image and imagePreview if currently using default image
+        // so that if user uploaded a custom image, it stays until title changes again.
+        if (isUsingDefaultImage) {
+          setFormData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  image: imageUrl,
+                  cloudinaryPublicId: undefined,
+                }
+              : null
+          );
+          setImagePreview(imageUrl);
+        }
+      } else {
+        setDefaultImageUrl(null);
       }
     } catch (err) {
       console.error("Failed to fetch RAWG image", err);
@@ -506,11 +521,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
               autoComplete="off"
               value={formData?.name || ""}
               ref={inputRef}
-              onChange={(e) => {
-                const value = e.target.value;
-                setFormData((prev) => (prev ? { ...prev, name: value } : null));
-                setTitleInput(value);
-              }}
+              onChange={handleChange}
               onFocus={() => {
                 setIsInputFocused(true);
                 if (titleSuggestions.length > 0 || isLoadingSuggestions) {
@@ -605,48 +616,57 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
             </span>
 
             <div
+              onClick={handleClickDropzone}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
-              className={`w-full flex flex-col items-center justify-center border-2 ${
-                dragOver ? 'border-blue-500 bg-blue-50' : 'border-[var(--thin)] bg-[var(--thin)]'
-              } rounded-md p-4 transition-colors duration-200`}
+              className={`w-full flex flex-col items-center justify-center border-2 border-[var(--thin)] hover:border-[var(--thin-brighter-brighter)] hover:border-dashed ${
+                dragOver ? '' : 'border-[var(--thin)] bg-[var(--thin)]'
+              } rounded-md p-4`}
+              style={{ cursor: 'pointer', position: 'relative' }}
             >
               {(imagePreview || defaultImageUrl) ? (
-                <>
-                  <img
-                    src={imagePreview ?? defaultImageUrl}
-                    alt={imagePreview ? "Custom uploaded" : "Default from RAWG"}
-                    className="max-h-48 max-w-full object-contain rounded mb-3 pointer-events-none select-none"
-                  />
-                  <p className="text-sm italic text-[var(--text-thin-brighter)]">
-                    {imagePreview ? "Custom image selected" : "Default image from RAWG"}
+                (imagePreview?.trim() || defaultImageUrl?.trim()) ? (
+                  <>
+                    <img
+                      src={imagePreview?.trim() || defaultImageUrl?.trim() || undefined}
+                      alt={imagePreview ? "Custom uploaded" : "Default from RAWG"}
+                      className="max-h-48 max-w-full object-contain rounded pointer-events-none select-none"
+                    />
+                    {dragOver && (
+                      <div className="absolute inset-0 bg-[var(--background)] z-10 flex items-center justify-center text-[var(--thin-brighter)] font-medium rounded">
+                        Drop to upload custom image
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="italic text-[var(--text-thin)] text-center">
+                    Drag an image here to upload a custom image or enter the game title to fetch the default image.
                   </p>
-                  {dragOver && (
-                    <div className="absolute inset-0 bg-blue-100 bg-opacity-60 z-10 flex items-center justify-center text-blue-700 font-medium rounded">
-                      Drop to upload
-                    </div>
-                  )}
-                </>
+                )
               ) : (
-                <p className="italic text-[var(--text-thin-brighter)]">
-                  Drag an image here or use the button below
+                <p className="italic text-[var(--text-thin)] text-center">
+                  Drag an image here to upload a custom image or enter the game title to fetch the default image.
                 </p>
               )}
             </div>
 
-            <div className="mt-4 text-center">
-              <p className="text-sm mb-2 text-[var(--text-thin)]">Want to use your own image?</p>
-              <button
-                type="button"
-                onClick={handleClickDropzone}
-                className="text-sm text-[var(--thin-brighter)] hover:text-[var(--text-thin)] underline"
-              >
-                Upload a custom image
-              </button>
-              <div onClick={handleClickDropzone} style={{ display: "none" }} ref={dropzoneRef} />
-            </div>
+            {/* Text below and outside the box, only if an image is showing */}
+            {(imagePreview || defaultImageUrl) && (imagePreview?.trim() || defaultImageUrl?.trim()) && (
+              <p className="mt-2 text-center text-[var(--thin-brighter)] italic">
+                Click or drag an image into the box above to upload custom image.
+              </p>
+            )}
+
+            {/* Hidden file input trigger */}
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              ref={inputRef}
+              onChange={handleFileChange}
+            />
           </div>
 
           {/* Score */}
