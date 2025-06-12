@@ -40,6 +40,17 @@ function MainLayout({
 
   const isTemplateMode = !username;
 
+  const [showCategoryEditor, setShowCategoryEditor] = useState(false);
+
+  useEffect(() => {
+    if (editingCategory) {
+      // Delay activating animation class until after component mounts
+      requestAnimationFrame(() => setShowCategoryEditor(true));
+    } else {
+      setShowCategoryEditor(false);
+    }
+  }, [editingCategory]);
+
   useEffect(() => {
     if (externalCards && externalCategories) {
       setAuthReady(true);
@@ -261,21 +272,21 @@ function MainLayout({
           </div>
         )}
 
-        {!editingCard && editingCategory && !readOnly && (
-          <div
-            className={`edit-section container absolute top-full w-full h-full bg-[var(--background)] transition-all duration-800 ease-in-out ${
-              editingCategory ? 'editing-active' : 'editing-inactive'
-            }`}
-            aria-modal="true"
-            role="dialog"
-          >
+        <div
+          className={`edit-section container absolute top-full w-full h-full transition-all duration-800 ease-in-out ${
+            editingCategory && showCategoryEditor ? 'editing-active' : 'editing-inactive'
+          } ${editingCategory ? '' : 'pointer-events-none'}`}
+          aria-modal="true"
+          role="dialog"
+        >
+          {editingCategory && (
             <EditCategorySection
               onClose={closeCategoryEditor}
               onSave={() => handleCategorySave(false)}
               onDeleteCategory={handleDeleteCategory}
             />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <Toaster

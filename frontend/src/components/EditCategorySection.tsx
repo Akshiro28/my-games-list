@@ -190,7 +190,7 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
 
   return (
     <section
-      className="w-full container mx-auto h-full overflow-auto pt-5"
+      className="w-full container mx-auto h-full overflow-auto pt-5 bg-[var(--background)]"
       aria-modal="true"
       role="dialog"
       aria-labelledby="edit-category-title"
