@@ -467,11 +467,17 @@ app.get('/api/users/me', authenticate, async (req, res) => {
   res.json(user); // includes `username`
 });
 
-// Example with Express + MongoDB
-app.get('/api/users/exists/:username', authenticate, async (req, res) => {
-  const { username } = req.params;
-  const user = await db.collection('users').findOne({ username });
-  res.json({ exists: !!user });
+app.get('/api/users/exists/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    const user = await db.collection('users').findOne({ username });
+
+    res.json({ exists: !!user });
+  } catch (err) {
+    console.error('Error checking username:', err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 app.get('/api/suggestions', async (req, res) => {

@@ -53,6 +53,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [defaultImageUrl, setDefaultImageUrl] = useState<string | null>(null);
+  const [originalCloudinaryPublicId, setOriginalCloudinaryPublicId] = useState<string | undefined>();
 
   const dropzoneRef = useRef<HTMLDivElement>(null);
   const dragCounter = useRef(0);
@@ -149,6 +150,12 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       setFormData(null);
     }
   }, [card, isNew]);
+
+  useEffect(() => {
+    if (formData?.cloudinaryPublicId) {
+      setOriginalCloudinaryPublicId(formData.cloudinaryPublicId);
+    }
+  }, [formData]);
 
   if (!formData) return null;
 
@@ -370,7 +377,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       const safeScore = typeof formData.score === 'number' && !isNaN(formData.score) ? formData.score : 0;
 
       // NEW: If replacing image on an existing card, delete old image from Cloudinary
-      if (!isCreating && selectedFile && cloudinaryPublicId) {
+      if (!isCreating && selectedFile && originalCloudinaryPublicId) {
         try {
           const user = getAuth().currentUser;
           if (!user) throw new Error("User not logged in");
@@ -380,13 +387,12 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,  // <<< important
+              'Authorization': `Bearer ${token}`,
             },
-            body: JSON.stringify({ publicId: cloudinaryPublicId }),
+            body: JSON.stringify({ publicId: originalCloudinaryPublicId }),
           });
         } catch (err) {
           console.error('Failed to delete old image from Cloudinary:', err);
-          // We can still proceed, but notify user optionally
         }
       }
 
@@ -421,6 +427,11 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
 
       const updatedCard = await response.json();
       onSave(updatedCard);
+
+      // ✅ Now update the originalCloudinaryPublicId for future edits
+      setOriginalCloudinaryPublicId(cloudinaryPublicId);
+
+      toast.success(isNew ? 'Game saved successfully!' : 'Changes saved', { id: toastId });
 
       toast.success(isNew ? 'Game saved successfully!' : 'Changes saved', { id: toastId });
     } catch (err) {
