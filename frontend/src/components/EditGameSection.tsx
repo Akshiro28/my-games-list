@@ -194,31 +194,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
         return;
       }
 
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      // Delete existing custom Cloudinary image if present
-      if (formData?.cloudinaryPublicId && user) {
-        try {
-          const token = await user.getIdToken();
-
-          await fetch("/api/images/delete", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ publicId: formData.cloudinaryPublicId }),
-          });
-
-          console.log("Deleted previous custom image from Cloudinary.");
-        } catch (err) {
-          console.error("Error deleting Cloudinary image:", err);
-          toast.error("Failed to delete previous image from Cloudinary.");
-        }
-      }
-
-      // Update form state after deletion
+      // Don't delete Cloudinary image yet — just reset the preview and image fields
       setFormData(prev => prev ? {
         ...prev,
         name: value,
@@ -397,10 +373,6 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       toast.error('Score must be between 1 and 100');
       return;
     }
-    if (!formData.image && !selectedFile) {
-      toast.error('Image cannot be empty');
-      return;
-    }
 
     let toastId: string | undefined;
 
@@ -408,70 +380,102 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       setLoading(true);
       toastId = toast.loading('Saving game...');
 
+      const isCreating = isNew || formData._id === undefined;
+      const safeScore =
+        typeof formData.score === 'number' && !isNaN(formData.score)
+          ? formData.score
+          : 0;
+
+      const user = getAuth().currentUser;
+      if (!user) {
+        toast.error('User not logged in', { id: toastId });
+        return;
+      }
+
+      const token = await user.getIdToken();
       let imageUrl = formData.image;
       let cloudinaryPublicId = formData.cloudinaryPublicId;
 
-      const isCreating = isNew || formData._id === undefined;
-      const safeScore = typeof formData.score === 'number' && !isNaN(formData.score) ? formData.score : 0;
-
-      // NEW: If replacing image on an existing card, delete old image from Cloudinary
-      if (!isCreating && selectedFile && originalCloudinaryPublicId) {
-        try {
-          const user = getAuth().currentUser;
-          if (!user) throw new Error("User not logged in");
-          const token = await user.getIdToken();
-
-          await fetch(`${baseUrl}/api/images/delete`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({ publicId: originalCloudinaryPublicId }),
-          });
-        } catch (err) {
-          console.error('Failed to delete old image from Cloudinary:', err);
+      // STEP 1: Send initial request without uploading new image yet
+      const response = await fetch(
+        `${baseUrl}/api/cards${isCreating ? '' : '/' + formData._id}`,
+        {
+          method: isCreating ? 'POST' : 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            description: formData.description,
+            image: imageUrl,
+            cloudinaryPublicId: cloudinaryPublicId,
+            score: safeScore,
+            categories: selectedCategories,
+          }),
         }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (result?.message?.includes('already exists')) {
+          toast.error('A game with that title already exists', { id: toastId });
+        } else {
+          toast.error(result?.message || 'Failed to save the game', { id: toastId });
+        }
+        return;
       }
 
-      // Upload new image if there's a selected file
+      // STEP 2: If user selected a new file, upload it now and update the card
       if (selectedFile) {
+        // Delete old image if editing and old publicId exists
+        if (!isCreating && originalCloudinaryPublicId) {
+          try {
+            await fetch(`${baseUrl}/api/images/delete`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ publicId: originalCloudinaryPublicId }),
+            });
+          } catch {
+            // Suppress cloudinary deletion error
+          }
+        }
+
         const uploadResult = await uploadImageToCloudinary(selectedFile);
         imageUrl = uploadResult.url;
         cloudinaryPublicId = uploadResult.publicId;
+
+        // PATCH the game with the uploaded image
+        const updateImageRes = await fetch(`${baseUrl}/api/cards/${result._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            image: imageUrl,
+            cloudinaryPublicId: cloudinaryPublicId,
+          }),
+        });
+
+        if (!updateImageRes.ok) {
+          toast.error('Image uploaded but failed to attach to game', { id: toastId });
+          return;
+        }
       }
 
-      const user = getAuth().currentUser;
-      if (!user) throw new Error("User not logged in");
-      const token = await user.getIdToken();
-
-      const response = await fetch(`${baseUrl}/api/cards${isCreating ? '' : '/' + formData._id}`, {
-        method: isCreating ? 'POST' : 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          image: imageUrl,
-          cloudinaryPublicId: cloudinaryPublicId,
-          score: safeScore,
-          categories: selectedCategories,
-        }),
-      });
-
-      if (!response.ok) throw new Error(`${isCreating ? 'Creating' : 'Updating'} game failed`);
-
-      const updatedCard = await response.json();
-      onSave(updatedCard);
-
-      // ✅ Now update the originalCloudinaryPublicId for future edits
+      // STEP 3: Success
+      onSave({ ...result, image: imageUrl, cloudinaryPublicId });
       setOriginalCloudinaryPublicId(cloudinaryPublicId);
 
-      toast.success(isNew ? 'Game saved successfully!' : 'Changes saved', { id: toastId });
-    } catch (err) {
-      console.error('Error saving card:', err);
+      toast.success(isNew ? 'Game saved successfully!' : 'Changes saved', {
+        id: toastId,
+      });
+    } catch {
       toast.error('Failed to save the game. Please try again.', { id: toastId });
     } finally {
       setLoading(false);

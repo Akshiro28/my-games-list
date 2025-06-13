@@ -180,10 +180,21 @@ app.post('/api/cards', authenticate, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
+
   const uid = req.user.uid;
   const card = { ...req.body, uid, createdAt: new Date() };
 
   try {
+    // Check for duplicate title (case-insensitive) for this user
+    const existing = await cardsCollection.findOne({
+      uid,
+      name: { $regex: `^${card.name}$`, $options: "i" }
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: "You already have a game with this title." });
+    }
+
     const result = await cardsCollection.insertOne(card);
     res.status(201).json({ _id: result.insertedId, ...card });
   } catch (err) {
@@ -197,6 +208,7 @@ app.put('/api/cards/:id', authenticate, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
+
   const uid = req.user.uid;
   const { id } = req.params;
   const updatedData = req.body;
@@ -205,6 +217,17 @@ app.put('/api/cards/:id', authenticate, async (req, res) => {
     return res.status(400).json({ error: 'Invalid card ID' });
 
   try {
+    // Check for duplicate title (case-insensitive) that is NOT the current card
+    const duplicate = await cardsCollection.findOne({
+      uid,
+      name: { $regex: `^${updatedData.name}$`, $options: "i" },
+      _id: { $ne: new ObjectId(id) }
+    });
+
+    if (duplicate) {
+      return res.status(400).json({ message: "Another game with this title already exists." });
+    }
+
     const result = await cardsCollection.updateOne(
       { _id: new ObjectId(id), uid },
       { $set: updatedData }
