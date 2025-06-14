@@ -284,7 +284,7 @@ function CardGrid({
                       <img className="w-full h-36 object-cover" src={card.image} alt={`Cover of ${card.name}`} />
                       <div className="px-5 py-4">
                         <div className="flex w-full items-center justify-between">
-                          <h3 className="text-lg font-semibold">{card.name}</h3>
+                          <h3 className="text-lg font-semibold pe-2">{card.name}</h3>
                           <span className={`px-2 rounded text-sm font-medium w-fit h-fit ${textColor} ${bgColor} ${borderColor}`}>
                             {card.score}
                           </span>

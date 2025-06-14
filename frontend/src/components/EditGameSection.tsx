@@ -492,7 +492,6 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
       const text = await res.text();
 
       if (!res.ok || !contentType.toLowerCase().includes("application/json")) {
-        console.warn("RAWG API did not return JSON. Likely no valid game found.");
         return;
       }
 
