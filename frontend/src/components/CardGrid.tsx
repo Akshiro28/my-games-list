@@ -214,7 +214,7 @@ function CardGrid({
             No games found.
           </div>
         ) : (
-          <div key={filteredCards.map(c => c._id).join()} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 overflow-hidden">
+          <div key={filteredCards.map(c => c._id).join()} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-hidden">
             {filteredCards.map((card, index) => {
               let textColor = '';
               let bgColor = '';
@@ -281,7 +281,7 @@ function CardGrid({
                           </button>
                         </div>
                       )}
-                      <img className="w-full h-36 object-cover" src={card.image} alt={`Cover of ${card.name}`} />
+                      <img className="w-full 2xl:h-36 md:h-28 object-cover" src={card.image} alt={`Cover of ${card.name}`} />
                       <div className="px-5 py-4">
                         <div className="flex w-full items-center justify-between">
                           <h3 className="text-lg font-semibold pe-2">{card.name}</h3>

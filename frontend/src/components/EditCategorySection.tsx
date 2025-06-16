@@ -210,7 +210,7 @@ function EditCategorySection({ onClose, onSave, onDeleteCategory }: EditCategory
 
         <form
           onSubmit={handleSubmit}
-          className="w-160 max-w-full flex flex-col gap-6"
+          className="max-w-160 w-full flex flex-col gap-6"
         >
           <label className="block">
             <span className="mb-2 block">

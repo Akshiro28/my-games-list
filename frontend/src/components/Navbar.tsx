@@ -18,7 +18,6 @@ interface BackendUser {
   name?: string;
   picture?: string;
   username?: string;
-  // add any other fields your backend returns
 }
 
 function Navbar({ viewedUsername }: NavbarProps) {
@@ -233,10 +232,8 @@ function Navbar({ viewedUsername }: NavbarProps) {
         setUsernameStatus(null);
         setIsEditingUsername(false);
 
-        // ✅ Show toast
         toast.success("Username successfully changed!");
 
-        // ✅ Redirect after short delay to allow toast to show
         setTimeout(() => {
           navigate(`/${trimmed}`);
         }, 1200); // wait ~1.2s before redirect

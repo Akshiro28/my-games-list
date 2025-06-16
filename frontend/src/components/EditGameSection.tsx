@@ -538,7 +538,7 @@ function EditGameSection({ card, onClose, onSave, isNew }: EditGameSectionProps)
           {isNew ? 'Add New Game' : 'Edit Game'}
         </h2>
 
-        <form onSubmit={handleSubmit} className="w-160 max-w-full flex flex-col gap-6">
+        <form onSubmit={handleSubmit} className="max-w-160 w-full flex flex-col gap-6">
           {/* Title Input */}
           <div className="block relative">
             <span className="mb-2 block">
