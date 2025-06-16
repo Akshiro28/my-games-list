@@ -326,7 +326,7 @@ function Navbar({ viewedUsername, onToggleSidebar }: NavbarProps) {
             </div>
           ) : (
             !loading && (
-              <button onClick={signInWithGoogle} className="bg-blue-600 px-3 py-1 rounded hover:bg-blue-500 cursor-pointer">
+              <button onClick={signInWithGoogle} className="bg-blue-600 px-3 py-1 rounded hover:bg-blue-500 cursor-pointer text-[10px] md:text-[16px] translate-y-[-4px]">
                 Sign in with Google
               </button>
             )
@@ -388,12 +388,23 @@ function Navbar({ viewedUsername, onToggleSidebar }: NavbarProps) {
               ref={usernameInputRef}
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length > 25) {
+                  toast.error("Username cannot be more than 25 characters.");
+                  return;
+                }
+                setUsername(value);
+              }}
               placeholder="Enter your username"
               className="border-2 border-[var(--thin)] focus:border-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] px-3 py-2 w-full rounded-md focus:outline-none placeholder-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] focus:placeholder-[var(--text-thin)]"
               disabled={loading}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && username.trim() && usernameStatus === "available") {
+                if (
+                  e.key === "Enter" &&
+                  username.trim() &&
+                  usernameStatus === "available"
+                ) {
                   handleSaveUsername();
                 }
               }}

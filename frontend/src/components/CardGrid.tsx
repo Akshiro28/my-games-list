@@ -208,7 +208,7 @@ function CardGrid({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
+      <div className="flex-1 overflow-y-auto relative" ref={scrollContainerRef}>
         {filteredCards.length === 0 ? (
           <div className="relative flex items-center justify-center h-full w-full p-4 text-center text-[var(--thin-brighter)] rounded-md border-2 border-dashed border-[var(--thin)] italic">
             No games found.
@@ -338,7 +338,10 @@ function CardGrid({
         }}
       />
       <div
-        className="pointer-events-none absolute top-43 sm:top-30 md:top-31.75 left-0 w-full card-bottom-gradient transition-height duration-600 ease-in-out"
+        className={`
+          pointer-events-none absolute left-0 w-full card-bottom-gradient transition-height duration-600 ease-in-out
+          ${!readOnly && authUser && window.location.pathname !== '/' ? 'top-43' : 'top-31'}
+        `}
         style={{
           background: 'linear-gradient(to bottom, rgba(28,31,42,1), transparent)',
           height: bottomGradientHeight,

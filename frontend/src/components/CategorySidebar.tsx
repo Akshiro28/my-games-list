@@ -83,7 +83,7 @@ function CategorySidebar({
     >
       {/* Close button only visible on mobile */}
       <button
-        className="md:hidden absolute top-4 right-4 text-white z-50"
+        className="md:hidden absolute top-4 right-4 text-white z-50 -translate-y-1"
         onClick={onCloseMobileSidebar}
       >
         ✕
