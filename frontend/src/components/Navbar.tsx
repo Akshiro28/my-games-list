@@ -39,6 +39,7 @@ function Navbar({ viewedUsername, onToggleSidebar }: NavbarProps) {
   const displayUsername = rawDisplayUsername.trim() !== "" ? rawDisplayUsername : "Akshiro";
   const [backendUserLoading, setBackendUserLoading] = useState(true);
   const isUserFullyLoaded = !backendUserLoading;
+  const hasPromptedUsername = useRef(false);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -52,6 +53,7 @@ function Navbar({ viewedUsername, onToggleSidebar }: NavbarProps) {
   }, []);
 
   // Fetch auth state and backend user info
+  
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
@@ -63,18 +65,28 @@ function Navbar({ viewedUsername, onToggleSidebar }: NavbarProps) {
             const res = await fetch(`${API_BASE_URL}/api/users/get-by-uid?uid=${firebaseUser.uid}`, {
               headers: { Authorization: `Bearer ${idToken}` },
             });
+
             if (res.ok) {
               const data = await res.json();
               setBackendUser(data);
-              setShowUsernamePrompt(!data.username);
+              if (!hasPromptedUsername.current && !data.username) {
+                setShowUsernamePrompt(true);
+                hasPromptedUsername.current = true;
+              }
             } else {
               setBackendUser(null);
-              setShowUsernamePrompt(true);
+              if (!hasPromptedUsername.current) {
+                setShowUsernamePrompt(true);
+                hasPromptedUsername.current = true;
+              }
             }
           } catch (err) {
             console.error("Error fetching user:", err);
             setBackendUser(null);
-            setShowUsernamePrompt(true);
+            if (!hasPromptedUsername.current) {
+              setShowUsernamePrompt(true);
+              hasPromptedUsername.current = true;
+            }
           } finally {
             setBackendUserLoading(false);
           }
@@ -83,9 +95,11 @@ function Navbar({ viewedUsername, onToggleSidebar }: NavbarProps) {
         setUser(null);
         setBackendUser(null);
         setShowUsernamePrompt(false);
+        hasPromptedUsername.current = false; // reset when logged out
         setBackendUserLoading(false);
       }
     });
+
     return () => unsubscribe();
   }, []);
 
@@ -265,7 +279,7 @@ function Navbar({ viewedUsername, onToggleSidebar }: NavbarProps) {
         )}
 
         {user && isUserFullyLoaded && backendUser?.username !== displayUsername && (
-          <div className="flex items-center text-sm italic text-[var(--text-thin)]">
+          <div className="flex items-center text-sm italic text-[var(--text-thin)] hidden lg:block my-auto">
             You're viewing <span className="font-bold">&nbsp;{displayUsername}</span>'s game list.&nbsp;
             <a
               href={`/${backendUser?.username}`}
@@ -353,7 +367,7 @@ function Navbar({ viewedUsername, onToggleSidebar }: NavbarProps) {
 
       {showUsernamePrompt && (
         <div className="fixed inset-0 z-10 flex items-center justify-center bg-[rgba(0,0,0,0.32)] backdrop-blur-xs">
-          <div className="bg-[var(--background)] p-6 rounded-md max-w-120 w-full border-2 border-[var(--thin-brighter)] large-shadow-darker">
+          <div className="bg-[var(--background)] p-6 rounded-md max-w-120 w-[calc(100%-32px)] border-2 border-[var(--thin-brighter)] large-shadow-darker">
             <h2 className="text-3xl font-semibold mb-6">
               {isEditingUsername ? "Edit username" : "Choose a username"}
             </h2>

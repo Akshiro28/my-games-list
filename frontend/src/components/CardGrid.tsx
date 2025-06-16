@@ -304,7 +304,7 @@ function CardGrid({
 
       {cardToDelete && (
         <div className="fixed inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.32)] backdrop-blur-xs z-20">
-          <div className="bg-[var(--background)] px-8 py-6 rounded-lg shadow-md text-center large-shadow-darker border-2 border-[var(--thin-brighter)]">
+          <div className="bg-[var(--background)] px-6 md:px-8 py-6 rounded-lg shadow-md text-center large-shadow-darker border-2 border-[var(--thin-brighter)] max-w-[calc(100%-32px)]">
             <p className="text-lg mb-4">
               Are you sure you want to delete "<strong>{cardToDelete.name}</strong>"?
             </p>
