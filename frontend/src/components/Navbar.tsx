@@ -10,6 +10,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 interface NavbarProps {
   viewedUsername?: string | null;
+  onToggleSidebar?: () => void;
 }
 
 interface BackendUser {
@@ -20,7 +21,7 @@ interface BackendUser {
   username?: string;
 }
 
-function Navbar({ viewedUsername }: NavbarProps) {
+function Navbar({ viewedUsername, onToggleSidebar }: NavbarProps) {
   const usernameFromUrl: string | undefined = window.location.pathname.split("/")[1];
   const [user, setUser] = useState<User | null>(null);
   const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
@@ -251,14 +252,14 @@ function Navbar({ viewedUsername }: NavbarProps) {
 
   return (
     <>
-      <nav className="container fixed top-4 w-[calc(100%-32px)] translate-x-[-50%] left-1/2 bg-[var(--thin)] rounded-lg h-18 flex justify-between py-5 px-10 z-10">
+      <nav className="container fixed top-4 w-[calc(100%-32px)] translate-x-[-50%] left-1/2 bg-[var(--thin)] rounded-lg h-14 md:h-18 flex justify-between py-4.5 md:py-5 px-5 md:px-10 z-10">
         <a className="flex items-center" href="/">
           <img src="/logo/logo_AK.png" alt="Logo" className="h-full" />
-          <p className="ms-4.5 text-xl">MyGamesList</p>
+          <p className="ms-3 md:ms-4.5 text-sm md:text-xl">MyGamesList</p>
         </a>
 
         {!user && isUserFullyLoaded && (
-          <div className="flex items-center text-sm italic text-[var(--text-thin)]">
+          <div className="flex items-center text-sm italic text-[var(--text-thin)] hidden lg:block my-auto">
             Welcome! You're viewing <span className="font-bold">&nbsp;{displayUsername}</span>'s game list. Sign in to create your own!
           </div>
         )}
@@ -279,11 +280,11 @@ function Navbar({ viewedUsername }: NavbarProps) {
           {user ? (
             <div
               ref={dropdownRef}
-              className="relative cursor-pointer select-none translate-y-[-8px] translate-x-3"
+              className="relative cursor-pointer select-none translate-y-[-8px] md:translate-x-3"
               onClick={() => setShowDropdown((v) => !v)}
             >
-              <div className="flex items-center gap-3 hover:bg-[var(--thin-brighter)] py-2 px-3 rounded-md">
-                <img src={user.photoURL || "/default-avatar.png"} className="w-8 h-8 rounded-full" alt="avatar" />
+              <div className="flex items-center gap-3 hover:bg-[var(--thin-brighter)] py-2 px-3 rounded-md text-sm md:text-xl">
+                <img src={user.photoURL || "/default-avatar.png"} className="w-5 md:w-8 h-5 md:h-8 rounded-full" alt="avatar" />
                 <span>{backendUser === null ? "Loading..." : backendUser?.username || "Anonymous"}</span>
               </div>
               {showDropdown && (
@@ -331,6 +332,23 @@ function Navbar({ viewedUsername }: NavbarProps) {
             )
           )}
         </div>
+
+        {onToggleSidebar && (
+          <button
+            className="md:hidden hover:bg-[var(--thin-brighter)] rounded-md cursor-pointer px-1 translate-x-1 md:translate-x-0"
+            onClick={onToggleSidebar}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
       </nav>
 
       {showUsernamePrompt && (

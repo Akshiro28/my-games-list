@@ -6,6 +6,7 @@ import CategorySidebar from '../components/CategorySidebar';
 import CardGrid from '../components/CardGrid';
 import EditGameSection from '../components/EditGameSection';
 import EditCategorySection from '../components/EditCategorySection';
+import Navbar from '../components/Navbar';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import axiosAuth from '../axiosAuth';
@@ -37,10 +38,19 @@ function MainLayout({
   const [isNew, setIsNew] = useState(false);
   const [editingCategory, setEditingCategory] = useState(false);
   const [userProfile, setUserProfile] = useState<{ username: string } | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const isTemplateMode = !username;
 
   const [showCategoryEditor, setShowCategoryEditor] = useState(false);
+
+  const toggleMobileSidebar = () => {
+    setIsMobileSidebarOpen((prev) => !prev);
+  };
+
+  const closeMobileSidebar = () => {
+    setIsMobileSidebarOpen(false);
+  };
 
   useEffect(() => {
     if (editingCategory) {
@@ -225,8 +235,10 @@ function MainLayout({
 
   return (
     <>
+      <Navbar onToggleSidebar={toggleMobileSidebar} />
+
       <div
-        className={`container mx-auto mt-31 flex h-[calc(100vh-236px)] w-[calc(100%-32px)] overflow-hidden relative main-layout-container ${
+        className={`container mx-auto mt-22.5 md:mt-31 flex h-[calc(100vh-186px)] md:h-[calc(100vh-236px)] w-[calc(100%-32px)] overflow-hidden relative main-layout-container ${
           editingCard || editingCategory ? 'editing' : ''
         }`}
       >
@@ -239,6 +251,8 @@ function MainLayout({
               onAddCategoryClick={openCategoryEditor}
               user={user}
               readOnly={readOnly}
+              isMobileOpen={isMobileSidebarOpen}
+              onCloseMobileSidebar={closeMobileSidebar}
             />
           </div>
 

@@ -22,6 +22,7 @@
   font-family: Lexend, system-ui, Avenir, Helvetica, Arial, sans-serif;
 
   --background: #1C1F2A;
+  --background90: rgba(28, 31, 42, 0.9);
   --white: #FFFFFF;
   --thin: #252938;
   --thin-brighter: #343A4F;

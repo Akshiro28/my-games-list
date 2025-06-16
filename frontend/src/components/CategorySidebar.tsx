@@ -12,6 +12,8 @@ type CategorySidebarProps = {
   onAddCategoryClick: () => void;
   user: any;
   readOnly?: boolean;
+  isMobileOpen: boolean;
+  onCloseMobileSidebar: () => void;
 };
 
 function CategorySidebar({
@@ -21,6 +23,8 @@ function CategorySidebar({
   onAddCategoryClick,
   user,
   readOnly = false,
+  isMobileOpen,
+  onCloseMobileSidebar,
 }: CategorySidebarProps) {
   const [search, setSearch] = useState('');
   const [topGradientHeight, setTopGradientHeight] = useState<number>(0);
@@ -70,86 +74,102 @@ function CategorySidebar({
   }, [filteredCategories]);
 
   return (
-    <aside className="w-64 flex flex-col h-full relative">
-      <div className="sticky top-0 bg-[var(--bg)]">
-        <h2 className="text-4xl font-semibold mb-5">Categories</h2>
-
-        <div className="flex">
-          <input
-            type="text"
-            placeholder="Search categories..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-3 py-2 mb-6 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder:italic"
-          />
-
-          {user && !readOnly && window.location.pathname !== '/' && (
-            <div
-              className={`flex items-center justify-center h-[44px] px-3 ms-2 rounded-md text-sm font-medium
-                border-[var(--thin)] text-[var(--thin-brighter)] hover:text-[var(--text-thin)] hover:border-[var(--thin-brighter)] cursor-pointer border-2
-              `}
-              onClick={onAddCategoryClick}
-            >
-              Edit
-            </div>
-          )}
-        </div>
-      </div>
-
-      <ul
-        ref={listRef}
-        className="space-y-1 overflow-y-auto flex-1 relative"
-        style={{ maxHeight: 'calc(100% - 130px)' }}
+    <div
+      className={`
+        md:static md:translate-x-0 md:w-auto md:h-auto md:bg-transparent
+        fixed top-0 left-0 h-full w-76 bg-[var(--background90)] backdrop-blur-sm z-20 transform transition-transform duration-800
+        ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}
+    >
+      {/* Close button only visible on mobile */}
+      <button
+        className="md:hidden absolute top-4 right-4 text-white z-50"
+        onClick={onCloseMobileSidebar}
       >
-        {filteredCategories.length === 0 ? (
-          <div className="w-full h-full flex items-center justify-center text-[var(--thin-brighter)] text-center px-4 border-2 border-dashed border-[var(--thin)] rounded-md italic">
-            No categories found.
-          </div>
-        ) : (
-          <>
-            <li>
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] cursor-pointer ${
-                  !selectedCategory ? 'bg-[var(--thin)]' : ''
-                }`}
-              >
-                All
-              </button>
-            </li>
+        ✕
+      </button>
 
-            {filteredCategories.map((category) => (
-              <li key={category._id}>
+      <aside className="w-full md:w-64 flex flex-col h-full relative p-4 md:p-0">
+        <div className="sticky top-0 bg-[var(--bg)] z-10">
+          <h2 className="text-4xl font-semibold mb-5">Categories</h2>
+
+          <div className="flex">
+            <input
+              type="text"
+              placeholder="Search categories..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-3 py-2 mb-6 text-sm md:text-[16px] rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] placeholder-[var(--thin-brighter)] focus:placeholder-[var(--text-thin)] hover:border-[var(--thin-brighter)] hover:placeholder-[var(--text-thin)] placeholder:italic"
+            />
+
+            {user && !readOnly && window.location.pathname !== '/' && (
+              <div
+                className={`flex items-center justify-center h-[43px] px-3 ms-2 rounded-md text-sm md:text-[16px] font-medium
+                  border-[var(--thin)] text-[var(--thin-brighter)] hover:text-[var(--text-thin)] hover:border-[var(--thin-brighter)] cursor-pointer border-2
+                `}
+                onClick={onAddCategoryClick}
+              >
+                Edit
+              </div>
+            )}
+          </div>
+        </div>
+
+        <ul
+          ref={listRef}
+          className="space-y-1 overflow-y-auto flex-1 relative"
+          style={{ maxHeight: 'calc(100% - 130px)' }}
+        >
+          {filteredCategories.length === 0 ? (
+            <div className="w-full h-full flex items-center justify-center text-[var(--thin-brighter)] text-center px-4 border-2 border-dashed border-[var(--thin)] rounded-md italic">
+              No categories found.
+            </div>
+          ) : (
+            <>
+              <li>
                 <button
-                  onClick={() => setSelectedCategory(category._id)}
-                  className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin)] cursor-pointer ${
-                    selectedCategory === category._id ? 'bg-[var(--thin)]' : ''
+                  onClick={() => setSelectedCategory(null)}
+                  className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin-brighter)] md:hover:bg-[var(--thin)] cursor-pointer ${
+                    !selectedCategory ? 'bg-[var(--thin-brighter)] md:bg-[var(--thin)]' : ''
                   }`}
                 >
-                  {category.name}
+                  All
                 </button>
               </li>
-            ))}
-          </>
-        )}
-      </ul>
 
-      <div
-        className="pointer-events-none absolute bottom-0 left-0 w-full category-top-gradient transition-height duration-600 ease-in-out"
-        style={{
-          background: 'linear-gradient(to top, rgba(28,31,42,1), transparent)',
-          height: topGradientHeight,
-        }}
-      />
+              {filteredCategories.map((category) => (
+                <li key={category._id}>
+                  <button
+                    onClick={() => setSelectedCategory(category._id)}
+                    className={`w-full text-left px-3 py-1 rounded hover:bg-[var(--thin-brighter)] md:hover:bg-[var(--thin)] cursor-pointer ${
+                      selectedCategory === category._id ? 'bg-[var(--thin-brighter)] md:bg-[var(--thin)]' : ''
+                    }`}
+                  >
+                    {category.name}
+                  </button>
+                </li>
+              ))}
+            </>
+          )}
+        </ul>
 
-      <div
-        className="pointer-events-none absolute top-32 left-0 w-full category-bottom-gradient transition-height duration-600 ease-in-out"
-        style={{
-          background: 'linear-gradient(to bottom, rgba(28,31,42,1), transparent)',
-          height: bottomGradientHeight,
-        }}
-      />
-    </aside>
+        <div
+          className="pointer-events-none absolute bottom-0 left-0 w-full category-top-gradient transition-height duration-600 ease-in-out"
+          style={{
+            background: 'linear-gradient(to top, rgba(28,31,42,1), transparent)',
+            height: topGradientHeight,
+          }}
+        />
+
+        <div
+          className="pointer-events-none absolute top-32 left-0 w-full category-bottom-gradient transition-height duration-600 ease-in-out"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(28,31,42,1), transparent)',
+            height: bottomGradientHeight,
+          }}
+        />
+      </aside>
+    </div>
   );
 }
 

@@ -115,16 +115,16 @@ function CardGrid({
   const currentSortLabel = SORT_OPTIONS.find(o => o.value === sortOption)?.label || '';
 
   return (
-    <main className="flex-1 ps-6 relative flex flex-col h-full">
+    <main className="flex-1 md:ps-6 relative flex flex-col h-full">
       <div className="sticky top-0 bg-[var(--bg)] z-8">
         <h1 className="text-4xl font-semibold mb-5 ps-1">Games</h1>
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6 w-full">
           <div className="flex flex-wrap gap-2 justify-center sm:justify-start w-full">
             <div className="flex gap-2 w-full sm:w-auto sm:flex-1">
-              <div className="relative w-full max-w-56 shrink-0" ref={dropdownRef}>
+              <div className="relative w-full max-w-48 md:max-w-56 shrink-0" ref={dropdownRef}>
                 <button
                   type="button"
-                  className="w-full max-w-56 ps-3 pe-2 py-2 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] flex justify-between items-center hover:border-[var(--thin-brighter)] cursor-pointer"
+                  className="w-full max-w-48 md:max-w-56 text-sm md:text-[16px] ps-3 pe-2 py-2 rounded-md border-2 border-[var(--thin)] focus:outline-none focus:border-[var(--thin-brighter)] flex justify-between items-center hover:border-[var(--thin-brighter)] cursor-pointer"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   aria-haspopup="listbox"
                   aria-expanded={dropdownOpen}
@@ -144,7 +144,7 @@ function CardGrid({
                 {dropdownOpen && (
                   <ul
                     role="listbox"
-                    className="w-full max-w-56 absolute mt-2 max-h-60 overflow-auto rounded-md bg-[var(--thin)] border-2 border-[var(--thin-brighter)] large-shadow focus:outline-none"
+                    className="w-full max-w-48 md:max-w-56 text-sm md:text-[16px] absolute mt-2 max-h-60 overflow-auto rounded-md bg-[var(--thin)] border-2 border-[var(--thin-brighter)] large-shadow focus:outline-none"
                     tabIndex={-1}
                   >
                     {SORT_OPTIONS.map(option => (
@@ -174,7 +174,7 @@ function CardGrid({
                 )}
               </div>
 
-              <div className="flex-grow lg:w-100 w-full">
+              <div className="flex-grow lg:w-100 w-full text-sm md:text-[16px]">
                 <input
                   type="text"
                   placeholder="Search games..."
@@ -198,7 +198,7 @@ function CardGrid({
                       categories: [],
                     });
                   }}
-                  className="px-3 py-2 rounded-md border-2 text-nowrap cursor-pointer border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]"
+                  className="px-3 py-2 rounded-md border-2 text-nowrap text-sm md:text-[16px] cursor-pointer border-[var(--thin)] text-[var(--thin-brighter)] hover:border-[var(--thin-brighter)] hover:text-[var(--text-thin)]"
                 >
                   + Add New Game
                 </button>
@@ -214,7 +214,7 @@ function CardGrid({
             No games found.
           </div>
         ) : (
-          <div key={filteredCards.map(c => c._id).join()} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-hidden">
+          <div key={filteredCards.map(c => c._id).join()} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 overflow-hidden">
             {filteredCards.map((card, index) => {
               let textColor = '';
               let bgColor = '';
@@ -281,7 +281,7 @@ function CardGrid({
                           </button>
                         </div>
                       )}
-                      <img className="w-full 2xl:h-36 md:h-28 object-cover" src={card.image} alt={`Cover of ${card.name}`} />
+                      <img className="w-full aspect-[2/1] object-cover" src={card.image} alt={`Cover of ${card.name}`} />
                       <div className="px-5 py-4">
                         <div className="flex w-full items-center justify-between">
                           <h3 className="text-lg font-semibold pe-2">{card.name}</h3>
@@ -338,7 +338,7 @@ function CardGrid({
         }}
       />
       <div
-        className="pointer-events-none absolute top-32 left-0 w-full card-bottom-gradient transition-height duration-600 ease-in-out"
+        className="pointer-events-none absolute top-43 sm:top-30 md:top-31.75 left-0 w-full card-bottom-gradient transition-height duration-600 ease-in-out"
         style={{
           background: 'linear-gradient(to bottom, rgba(28,31,42,1), transparent)',
           height: bottomGradientHeight,
