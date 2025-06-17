@@ -4,8 +4,6 @@ Welcome to **MyGamesList**, a modern, full-stack web application designed to hel
 
 Built using technologies like **React**, **Tailwind CSS**, **Firebase**, and **MongoDB**, this app combines speed, security, and simplicity in a clean and responsive UI.
 
----
-
 ## Tech Stack
 
 ### Frontend
@@ -15,7 +13,7 @@ Built using technologies like **React**, **Tailwind CSS**, **Firebase**, and **M
 - **Firebase Auth** - secure Google login integration
 - **Cloudinary** - custom user-uploaded image and storage
 - **RAWG Video Games API** - fetch game titles and cover images
-- **Vite** – blazing-fast bundler
+- **Vite** - blazing-fast bundler
 
 ### Backend
 
@@ -25,10 +23,8 @@ Built using technologies like **React**, **Tailwind CSS**, **Firebase**, and **M
 
 ### Hosting & Deployment
 
-- **Vercel** – frontend deployment (React + Vite)
-- **Railway** – backend deployment (Node.js + MongoDB)
-
----
+- **Vercel** - frontend deployment (React + Vite)
+- **Railway** - backend deployment (Node.js + MongoDB)
 
 ## Features
 
@@ -39,8 +35,6 @@ Built using technologies like **React**, **Tailwind CSS**, **Firebase**, and **M
 - **Google login** via Firebase Authentication
 - **Authenticated backend** with user-specific data
 - **Responsive layout** for mobile, tablet, and desktop page viewing
-
----
 
 ## Live Site
 
