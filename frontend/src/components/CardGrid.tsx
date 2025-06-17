@@ -339,7 +339,7 @@ function CardGrid({
       />
       <div
         className={`
-          pointer-events-none absolute left-0 w-full card-bottom-gradient transition-height duration-600 ease-in-out
+          pointer-events-none absolute left-0 sm:top-31 md:top-31.75 w-full card-bottom-gradient transition-height duration-600 ease-in-out
           ${!readOnly && authUser && window.location.pathname !== '/' ? 'top-43' : 'top-31'}
         `}
         style={{
