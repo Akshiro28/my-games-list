@@ -38,6 +38,6 @@ Built using technologies like **React**, **Tailwind CSS**, **Firebase**, and **M
 
 ## Live Site
 
-URL: [https://react-tailwind-app-eight.vercel.app/](https://react-tailwind-app-eight.vercel.app/)
+URL: [https://my-games-list-eight.vercel.app/](https://my-games-list-eight.vercel.app/)
 
 Thank you for checking it out!

@@ -121,7 +121,7 @@ function CategorySidebar({
           style={{ maxHeight: 'calc(100% - 130px)' }}
         >
           {filteredCategories.length === 0 ? (
-            <div className="w-full h-full flex items-center justify-center text-[var(--thin-brighter)] text-center px-4 border-2 border-dashed border-[var(--thin)] rounded-md italic">
+            <div className="w-full h-[calc(100vh-363px)] flex items-center justify-center text-[var(--thin-brighter)] text-center px-4 border-2 border-dashed border-[var(--thin)] rounded-md italic">
               No categories found.
             </div>
           ) : (
