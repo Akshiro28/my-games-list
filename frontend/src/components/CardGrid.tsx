@@ -158,11 +158,17 @@ function CardGrid({
                         onClick={() => {
                           setSortOption(option.value);
                           setDropdownOpen(false);
+                          if (scrollContainerRef.current) {
+                            scrollContainerRef.current.scrollTo({ top: 0, behavior: 'auto' });
+                          }
                         }}
                         onKeyDown={e => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             setSortOption(option.value);
                             setDropdownOpen(false);
+                            if (scrollContainerRef.current) {
+                              scrollContainerRef.current.scrollTo({ top: 0, behavior: 'auto' });
+                            }
                           }
                         }}
                         tabIndex={0}
